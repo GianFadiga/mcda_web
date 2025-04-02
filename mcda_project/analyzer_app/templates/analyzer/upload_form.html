@@ -1,0 +1,38 @@
+{% extends 'analyzer/base.html' %}
+
+{% block title %}Upload de Dados{% endblock %}
+
+{% block content %}
+
+<body class="bg-light d-flex justify-content-center align-items-center min-vh-100">
+    <div class="container text-center w-50">
+        <h1 class="mb-5">Análise de Dados de Produtos</h1>
+        
+        {% if messages %}
+        <div class="mb-4">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="mb-4">
+                <label for="dataFile" class="form-label">
+                    Selecione o arquivo CSV para análise:
+                </label>
+                <input type="file" class="form-control form-control-lg" name="file" id="dataFile" accept=".csv" required>
+            </div>
+            <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-primary btn-lg rounded-pill">
+                    <i class="bi bi-upload me-2"></i> Analisar Dados
+                </button>
+            </div>
+        </form>
+    </div>
+</body>
+
+{% endblock %}

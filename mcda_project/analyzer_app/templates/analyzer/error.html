@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="alert alert-danger">
+        <h4 class="alert-heading">Erro na Análise</h4>
+        <p>{{ error_message }}</p>
+        <hr>
+        <a href="{% url 'upload-view' %}" class="btn btn-outline-danger">
+            <i class="bi bi-arrow-left"></i> Voltar para upload
+        </a>
+    </div>
+</div>
+{% endblock %}

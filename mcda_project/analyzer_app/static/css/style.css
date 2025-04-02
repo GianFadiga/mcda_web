@@ -1,0 +1,56 @@
+/* Tema claro (padrão) */
+body {
+    background-color: #f8f9fa;
+    color: #212529;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.card {
+    background-color: #ffffff;
+    color: #212529;
+    border-color: #dee2e6;
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Tema escuro */
+body.dark-theme {
+    background-color: #212529;
+    color: #f8f9fa;
+}
+
+.dark-theme .card {
+    background-color: #343a40;
+    color: #f8f9fa;
+    border-color: #495057;
+}
+
+.dark-theme .btn-outline-secondary {
+    color: #f8f9fa;
+    border-color: #6c757d;
+}
+
+.dark-theme .btn-outline-secondary:hover {
+    background-color: #6c757d;
+    color: #fff;
+}
+
+/* Classes utilitárias */
+.center-grid {
+    display: grid;
+    justify-content: center;
+    vertical-align: middle;
+}
+
+/* Melhorias para o botão de tema */
+#themeToggle {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+#themeToggle i {
+    font-size: 1.2rem;
+}
