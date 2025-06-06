@@ -1,0 +1,104 @@
+<!-- analyzer_app\templates\analyzer\login.html -->
+{% extends 'analyzer/base.html' %}
+
+{% block title %}Login{% endblock %}
+
+{% block content %}
+{% load widget_tweaks %}
+
+<div class="container text-center w-50 fw-bold">
+  <h2>Login</h2>
+  <form method="post" action="{% url 'login' %}">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ next }}">
+
+    <div class="mb-3 text-start">
+      <div class="d-flex">
+        <label for="{{ form.email.id_for_label }}" class="form-label me-2">Email</label>
+        <i class="bi bi-question-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+          title="Digite o email usado no cadastro"></i>
+      </div>
+      {{ form.email|add_class:"form-control"|attr:"placeholder:exemplo@email.com" }}
+      {{ form.email.errors }}
+    </div>
+
+    <div class="mb-3 text-start">
+      <div class="d-flex">
+        <label for="{{ form.password.id_for_label }}" class="form-label me-2">Senha</label>
+        <i class="bi bi-question-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+          title="Sua senha é case-sensitive (diferenciará maiúsculas e minúsculas)"></i>
+      </div>
+      <div class="input-group">
+        {{ form.password|add_class:"form-control"|attr:"placeholder:Sua senha"|attr:"id:password-input" }}
+        <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+          <i class="bi bi-eye"></i>
+        </button>
+      </div>
+      {{ form.password.errors }}
+    </div>
+
+    <button type="submit" class="btn btn-primary w-100">Entrar</button>
+  </form>
+  <div class="mt-3">
+    <div class="mt-3">
+      <a href="{% url 'register' %}" class="d-block mt-3 text-decoration-none auth-link dynamic-link">
+        Ainda não é cadastrado? Registre-se aqui!
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // Toggle password visibility
+    const toggleButton = document.getElementById('togglePassword');
+    const passwordInput = document.getElementById('password-input');
+
+    toggleButton.addEventListener('click', function () {
+      const icon = this.querySelector('i');
+      if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        icon.classList.replace('bi-eye', 'bi-eye-slash');
+      } else {
+        passwordInput.type = 'password';
+        icon.classList.replace('bi-eye-slash', 'bi-eye');
+      }
+    });
+
+    // Inicializa tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+  });
+</script>
+
+{% if form.errors %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const toastContainer = document.getElementById('toast-container');
+    const errorToastTemplate = document.getElementById('errorToastTemplate');
+
+    if (errorToastTemplate) {
+      const toastClone = errorToastTemplate.cloneNode(true);
+      toastClone.id = '';
+      toastClone.classList.remove('d-none');
+
+      const toastBody = toastClone.querySelector('.toast-body');
+      if (toastBody) {
+        toastBody.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-2"></i> Erro ao fazer login. Verifique seus dados e tente novamente.';
+      }
+
+      toastContainer.appendChild(toastClone);
+      const toast = new bootstrap.Toast(toastClone);
+      toast.show();
+
+      setTimeout(() => {
+        toastClone.remove();
+      }, 5000);
+    }
+  });
+</script>
+{% endif %}
+
+{% endblock %}

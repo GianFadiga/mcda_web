@@ -1,0 +1,17 @@
+﻿Modelo,Preço (R$),Consumo (km/l),Potência (cv),Porta-malas (litros),Segurança (estrelas),Ar Condicionado,Câmbio Automático,Cor,
+,0.3,0.1,0.1,0.05,0.2,0.1,0.1,0.05,
+,number,number,number,number,number,boolean,boolean,string,
+,i_proportional,proportional,proportional,proportional,proportional,boolean,boolean,,pts_string
+BOM,60000,15,120,400,5,TRUE,TRUE,,
+NEUTRO,85000,10,90,300,3,TRUE,FALSE,,
+Fiat Argo,75000,13.5,109,350,4,TRUE,FALSE,Vermelho,0.01
+Volkswagen Polo,82000,12.8,116,320,5,TRUE,FALSE,Azul,0.02
+Chevrolet Onix,78000,14.2,106,305,4,TRUE,FALSE,Preto,0.01
+Hyundai HB20,72000,13.8,101,300,4,TRUE,FALSE,Branco,0.05
+Renault Kwid,65000,15.5,70,290,3,TRUE,FALSE,Prata,0.04
+Toyota Yaris,88000,12.5,110,310,4,TRUE,TRUE,Cinza,0.03
+Honda City,92000,11.8,126,500,5,TRUE,TRUE,Azul,0.02
+Peugeot 208,80000,13,113,315,4,TRUE,FALSE,Vermelho,0.01
+Citroën C3,70000,14.5,100,315,3,TRUE,FALSE,Branco,0.05
+Nissan Versa,86000,12,114,482,4,TRUE,FALSE,Preto,0.01
+Fusca,15000,9,50,200,1,FALSE,FALSE,Preto,0.01

@@ -1,0 +1,1 @@
+web: gunicorn mcda_project.wsgi:application

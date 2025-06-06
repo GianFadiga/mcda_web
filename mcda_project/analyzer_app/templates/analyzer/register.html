@@ -1,0 +1,147 @@
+<!-- analyzer_app\templates\analyzer\register.html -->
+{% extends 'analyzer/base.html' %}
+{% load widget_tweaks %}
+
+{% block title %}Cadastrar{% endblock %}
+
+{% block content %}
+<div class="container text-center w-50 fw-bold">
+  <h2 class="mb-4">Criar conta</h2>
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+
+    <!-- Campo Username -->
+    <div class="mb-3 text-start">
+      <div class="d-flex">
+        <label for="id_username" class="form-label me-2">Nome de usuário</label>
+        <i class="bi bi-question-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+          title="150 caracteres ou menos. Letras, números e @/./+/-/_ apenas."></i>
+      </div>
+      {% render_field form.username class="form-control" placeholder="Digite seu nome de usuário" %}
+      {% if form.username.errors %}
+      <div class="text-danger mt-1">
+        {% for error in form.username.errors %}
+        <small>{{ error }}</small>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Campo Email -->
+    <div class="mb-3 text-start">
+      <div class="d-flex">
+        <label for="id_email" class="form-label me-2">Email</label>
+        <i class="bi bi-question-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+          title="Um email válido para recuperação de conta"></i>
+      </div>
+      {% render_field form.email class="form-control" placeholder="Digite seu email" %}
+      {% if form.email.errors %}
+      <div class="text-danger mt-1">
+        {% for error in form.email.errors %}
+        <small>{{ error }}</small>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Campo Senha -->
+    <div class="mb-3 text-start">
+      <div class="d-flex">
+        <label for="id_password1" class="form-label me-2">Senha</label>
+        <i class="bi bi-question-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+          title="Sua senha deve conter pelo menos 8 caracteres e não pode ser inteiramente numérica"></i>
+      </div>
+      <div class="input-group">
+        {% render_field form.password1 class="form-control" placeholder="Digite sua senha" %}
+        <button class="btn btn-outline-secondary toggle-password" type="button" data-target="id_password1">
+          <i class="bi bi-eye"></i>
+        </button>
+      </div>
+      {% if form.password1.errors %}
+      <div class="text-danger mt-1">
+        {% for error in form.password1.errors %}
+        <small>{{ error }}</small>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Campo Confirmação de Senha -->
+    <div class="mb-3 text-start">
+      <div class="d-flex">
+        <label for="id_password2" class="form-label me-2">Confirmar Senha</label>
+        <i class="bi bi-question-circle" data-bs-toggle="tooltip" data-bs-placement="right"
+          title="Digite a mesma senha novamente para confirmação"></i>
+      </div>
+      <div class="input-group">
+        {% render_field form.password2 class="form-control" placeholder="Confirme sua senha" %}
+        <button class="btn btn-outline-secondary toggle-password" type="button" data-target="id_password2">
+          <i class="bi bi-eye"></i>
+        </button>
+      </div>
+      {% if form.password2.errors %}
+      <div class="text-danger mt-1">
+        {% for error in form.password2.errors %}
+        <small>{{ error }}</small>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+    <button type="submit" class="btn btn-primary w-100 mt-3">Cadastrar</button>
+  </form>
+
+  <div class="mt-3">
+    <a href="{% url 'login' %}" class="d-block mt-3 text-decoration-none auth-link dynamic-link">
+      Já tem conta? Faça login
+    </a>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // Toggle password visibility
+    document.querySelectorAll('.toggle-password').forEach(button => {
+      button.addEventListener('click', function () {
+        const targetId = this.getAttribute('data-target');
+        const passwordInput = document.getElementById(targetId);
+        const icon = this.querySelector('i');
+
+        if (passwordInput.type === 'password') {
+          passwordInput.type = 'text';
+          icon.classList.replace('bi-eye', 'bi-eye-slash');
+        } else {
+          passwordInput.type = 'password';
+          icon.classList.replace('bi-eye-slash', 'bi-eye');
+        }
+      });
+    });
+
+    // Initialize tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+  });
+</script>
+
+{% if form.errors %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const toastTemplate = document.getElementById('errorToastTemplate');
+    if (toastTemplate) {
+      const clonedToast = toastTemplate.cloneNode(true);
+      clonedToast.classList.remove('d-none');
+      clonedToast.id = '';
+      clonedToast.querySelector('#errorToastMessage').textContent =
+        'Erro ao cadastrar. Verifique os campos e tente novamente.';
+
+      document.getElementById('toast-container').appendChild(clonedToast);
+      const toast = new bootstrap.Toast(clonedToast);
+      toast.show();
+    }
+  });
+</script>
+{% endif %}
+{% endblock %}

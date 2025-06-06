@@ -1,0 +1,23 @@
+<!-- analyzer_app/templates/analyzer/user_analyses.html -->
+{% extends 'analyzer/base.html' %}
+
+{% block title %}Minhas Análises{% endblock %}
+
+{% block content %}
+<div class="container w-50 text-center fw-bold">
+    <h2 class="mb-4">Minhas Análises</h2>
+
+    <ul class="list-group text-start">
+        {% for analysis in analyses %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+                <strong>{{ analysis.name }}</strong><br>
+                <small class="text-muted">{{ analysis.description }}</small>
+            </div>
+        </li>
+        {% empty %}
+        <li class="list-group-item text-center text-muted">Nenhuma análise encontrada.</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}

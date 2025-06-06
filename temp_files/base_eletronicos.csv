@@ -1,0 +1,15 @@
+﻿Modelo,Memória RAM,Armazenamento,Tamanho de tela,Bateria mAh,Cor,,Bluetooth
+,0.3,0.2,0.1,0.2,0.1,,0.1
+,number,number,number,number,string,pts_string,boolean
+,proportional,proportional,i_proportional,proportional,,,proportional
+BOM,8,960,14,5000,,,TRUE
+NEUTRO,4,120,16,3000,,,FALSE
+Acer,2,960,14,4000,Preto,0.01,TRUE
+Lenovo,4,480,15,3000,Prata,0.1,TRUE
+DELL,6,480,15,3000,Vermelho,0.02,FALSE
+Samsung,8,240,14,4000,Azul,0.03,TRUE
+Positivo,16,120,16,5000,Verde,0.04,FALSE
+Asus,12,512,13,4500,Preto,0.01,TRUE
+HP,8,256,14,3500,Prata,0.1,TRUE
+Apple,16,1000,16,6000,Cinza,0.1,TRUE
+LG,2,60,17,2400,Cinza,0.1,FALSE

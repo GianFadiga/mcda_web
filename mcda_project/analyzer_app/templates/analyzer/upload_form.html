@@ -4,7 +4,6 @@
 
 {% block content %}
 
-<!-- Upload screen -->
 <body class="bg-light d-flex justify-content-center align-items-center min-vh-100">
     <div class="container text-center w-50">
         <h1 class="mb-5">Análise de Dados de Produtos</h1>
@@ -19,7 +18,6 @@
         </div>
         {% endif %}
         
-        <!-- CSV check and receiver-->
         <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
             <div class="mb-4">

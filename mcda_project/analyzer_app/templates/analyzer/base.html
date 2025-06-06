@@ -1,56 +1,321 @@
+<!-- analyzer_app\templates\analyzer\base.html -->
 {% load static %}
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
-    <title>{% block title %}MCDA: PROJECT{% endblock %}</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}MCDA: PROJECT{% endblock %}</title>
+
+  <!-- Bootstrap CSS e ícones -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+
+  <!-- Estilos internos -->
+  <style>
+    .theme-loading {
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .theme-loaded {
+      opacity: 1;
+    }
+
+    .toast {
+      min-width: 250px;
+      background-color: #28a745;
+      color: white;
+      border-radius: 4px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      margin-bottom: 1rem;
+    }
+
+    .toast-body {
+      padding: 1rem;
+      display: flex;
+      align-items: center;
+    }
+
+    .toast-body:before {
+      content: none;
+    }
+
+  </style>
 </head>
-<body>
-    <!-- Botão de alternância de tema -->
-    <div class="position-fixed top-0 end-0 m-3">
-        <button id="themeToggle" class="btn btn-outline-secondary">
-            <i id="themeIcon" class="bi bi-moon-fill"></i>
+
+<body class="min-vh-100 theme-loading {% if user.is_authenticated %}bg-light{% else %}bg-dark{% endif %}">
+
+  <!-- Navbar -->
+  <nav
+    class="navbar navbar-expand-lg px-4 shadow-sm {% if user.is_authenticated %}navbar-light bg-light{% else %}navbar-dark bg-dark{% endif %}">
+    <div class="container-fluid d-flex justify-content-between align-items-center">
+      <a class="navbar-brand fw-bold" href="{% url 'upload_form_root' %}">MCDA Project</a>
+
+      <div class="d-flex align-items-center">
+        {% if user.is_authenticated %}
+        <span class="navbar-text me-3">Olá, {{ user.username }}!</span>
+
+        <a href="{% url 'profile' %}" class="btn btn-outline-primary me-2">Perfil</a>
+        <a href="{% url 'user_analyses' %}" class="btn btn-outline-primary me-2">Minhas Análises</a>
+
+        <a href="{% url 'logout' %}" class="btn btn-outline-danger me-3" data-logout>Sair</a>
+        {% endif %}
+
+        <button id="themeToggle" class="btn btn-outline-secondary" title="Alternar tema">
+          <i id="themeIcon" class="bi bi-moon-fill"></i>
         </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Mensagens -->
+  {% if messages %}
+  <div class="container mt-3">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+      {{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Conteúdo dinâmico -->
+  {% block content %}{% endblock %}
+
+  <!-- Toasts -->
+  <div id="toast-container" class="position-fixed bottom-0 start-0 p-3" style="z-index: 11">
+    <div id="logoutToast" class="toast align-items-center text-white bg-success" role="alert" aria-live="assertive"
+      aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body">
+          <i class="bi bi-check-square-fill me-2"></i>
+          <span>Logout realizado com sucesso.</span>
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+          aria-label="Fechar"></button>
+      </div>
     </div>
 
-    {% block content %}
-    {% endblock %}
+    <div id="loginToast" class="toast align-items-center text-white bg-success" role="alert" aria-live="assertive"
+      aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body">
+          <i class="bi bi-check-square-fill me-2"></i>
+          <span>Login realizado com sucesso.</span>
+        </div>
+      </div>
+    </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <!-- Script para controle do tema -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const themeToggle = document.getElementById('themeToggle');
-            const themeIcon = document.getElementById('themeIcon');
-            const body = document.body;
-            
-            // Verifica o tema salvo no localStorage
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            
-            // Aplica o tema salvo
-            if (savedTheme === 'dark') {
-                body.classList.add('dark-theme');
-                themeIcon.classList.replace('bi-moon-fill', 'bi-sun-fill');
-            }
-            
-            // Configura o evento de clique
-            themeToggle.addEventListener('click', function() {
-                body.classList.toggle('dark-theme');
-                
-                if (body.classList.contains('dark-theme')) {
-                    themeIcon.classList.replace('bi-moon-fill', 'bi-sun-fill');
-                    localStorage.setItem('theme', 'dark');
-                } else {
-                    themeIcon.classList.replace('bi-sun-fill', 'bi-moon-fill');
-                    localStorage.setItem('theme', 'light');
-                }
-            });
+    <div id="registerToast" class="toast align-items-center text-white bg-success" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body">
+          <i class="bi bi-person-check-fill me-2"></i>
+          <span>Conta criada com sucesso! Faça login.</span>
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Fechar"></button>
+      </div>
+    </div>
+
+    <div id="analysisErrorToast" class="toast align-items-center text-white bg-danger" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body">
+          <i class="bi bi-exclamation-circle-fill me-2"></i>
+          <span>Ocorreu um erro durante a análise. Verifique sua planilha e tente novamente.</span>
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Fechar"></button>
+      </div>
+    </div>
+
+    <div id="exportToast" class="toast align-items-center text-white bg-success" role="alert" aria-live="assertive"
+      aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body">
+          <i class="bi bi-file-earmark-pdf-fill me-2"></i>
+          <span>Preparando seu PDF, o download começará em breve...</span>
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+          aria-label="Fechar"></button>
+      </div>
+    </div>
+
+    <div id="alreadyLoggedInToast" class="toast align-items-center text-white bg-danger" role="alert" aria-live="assertive"
+      aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body">
+          <i class="bi bi-person-badge-fill"></i>
+          <span>Uma sessão de usuário já está ativa.</span>
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+          aria-label="Fechar"></button>
+      </div>
+    </div>
+
+    <div id="profileToast" class="toast align-items-center text-white bg-success" role="alert" aria-live="assertive"
+      aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body">
+          <i class="bi bi-file-earmark-pdf-fill me-2"></i>
+          <span>Perfil atualizado com sucesso!</span>
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+          aria-label="Fechar"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Template genérico de erro -->
+  <div id="errorToastTemplate" class="toast align-items-center text-white bg-danger d-none" role="alert"
+    aria-live="assertive" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <span>Ocorreu um erro. Verifique os campos e tente novamente.</span>
+      </div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+        aria-label="Fechar"></button>
+    </div>
+  </div>
+
+  <!-- Modal de confirmação de logout -->
+  <div class="modal fade" id="confirmLogoutModal" tabindex="-1" aria-labelledby="confirmLogoutModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content text-center" id="logoutModalContent">
+        <div class="modal-header">
+          <h5 class="modal-title">Confirmar Logout</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+          <p>Tem certeza que deseja sair?</p>
+        </div>
+        <div class="modal-footer justify-content-center">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-danger" id="confirmLogoutBtn">Sair</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      // Tema
+      const savedTheme = localStorage.getItem('theme') || 'light';
+      const body = document.body;
+      const navbar = document.querySelector('.navbar');
+
+      function applyDarkTheme() {
+        body.classList.add('dark-theme', 'bg-dark');
+        body.classList.remove('bg-light');
+        navbar.classList.add('navbar-dark', 'bg-dark');
+        navbar.classList.remove('navbar-light', 'bg-light');
+        document.getElementById('themeIcon')?.classList.replace('bi-moon-fill', 'bi-sun-fill');
+        document.querySelectorAll('.theme-aware-link').forEach(link => link.classList.add('dark-link'));
+        localStorage.setItem('theme', 'dark');
+      }
+
+      function applyLightTheme() {
+        body.classList.remove('dark-theme', 'bg-dark');
+        body.classList.add('bg-light');
+        navbar.classList.remove('navbar-dark', 'bg-dark');
+        navbar.classList.add('navbar-light', 'bg-light');
+        document.getElementById('themeIcon')?.classList.replace('bi-sun-fill', 'bi-moon-fill');
+        document.querySelectorAll('.theme-aware-link').forEach(link => link.classList.remove('dark-link'));
+        document.querySelectorAll('.auth-link, .dynamic-link').forEach(link => link.style.color = '');
+        localStorage.setItem('theme', 'light');
+      }
+
+      savedTheme === 'dark' ? applyDarkTheme() : applyLightTheme();
+      body.classList.add('theme-loaded');
+      body.classList.remove('theme-loading');
+
+      document.getElementById('themeToggle')?.addEventListener('click', () => {
+        body.classList.contains('dark-theme') ? applyLightTheme() : applyDarkTheme();
+      });
+
+      // Logout modal
+      const logoutLink = document.querySelector('[data-logout]');
+      const confirmBtn = document.getElementById('confirmLogoutBtn');
+      const logoutModalElement = document.getElementById('confirmLogoutModal');
+      const logoutModal = new bootstrap.Modal(logoutModalElement);
+
+      function applyModalTheme() {
+        const modalContent = document.getElementById('logoutModalContent');
+        if (document.body.classList.contains('dark-theme')) {
+          modalContent.classList.add('bg-dark', 'text-white');
+        } else {
+          modalContent.classList.remove('bg-dark', 'text-white');
+        }
+      }
+
+      // Aplica o tema assim que a página carrega (prepara o modal)
+      applyModalTheme();
+
+      if (logoutLink && confirmBtn && logoutModal) {
+        logoutLink.addEventListener('click', function (e) {
+          e.preventDefault();
+          applyModalTheme(); // Aplica tema *antes* de mostrar
+          logoutModal.show();
+
+          const handler = () => {
+            window.location.href = logoutLink.href;
+            confirmBtn.removeEventListener('click', handler);
+          };
+          confirmBtn.addEventListener('click', handler);
         });
-    </script>
+      }
+
+      // Toasts
+      const logoutToast = new bootstrap.Toast(document.getElementById('logoutToast'));
+      const loginToast = new bootstrap.Toast(document.getElementById('loginToast'));
+      const registerToast = new bootstrap.Toast(document.getElementById('registerToast'));
+      const analysisErrorToast = new bootstrap.Toast(document.getElementById('analysisErrorToast'));
+      const alreadyLoggedInToast = new bootstrap.Toast(document.getElementById('alreadyLoggedInToast'))
+
+      if (document.cookie.includes('show_logout_toast=true')) {
+        logoutToast.show();
+        document.cookie = 'show_logout_toast=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+      }
+
+      if (document.cookie.includes('show_login_toast=true')) {
+        loginToast.show();
+        document.cookie = 'show_login_toast=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+      }
+
+      if (document.cookie.includes('show_register_toast=true')) {
+        registerToast.show();
+        document.cookie = 'show_register_toast=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+      }
+
+      if (document.cookie.includes('show_analysis_error_toast=true')) {
+        analysisErrorToast.show();
+        document.cookie = 'show_analysis_error_toast=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+      }
+
+      if (document.cookie.includes('already_logged_in_toast=true')) {
+        alreadyLoggedInToast.show();
+        document.cookie = 'already_logged_in_toast=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+      }
+
+      function autoHideToast(toast, delay = 3000) {
+        setTimeout(() => toast.hide(), delay);
+      }
+
+      autoHideToast(logoutToast);
+      autoHideToast(loginToast);
+      autoHideToast(registerToast);
+      autoHideToast(analysisErrorToast);
+      autoHideToast(alreadyLoggedInToast);
+
+    });
+
+  </script>
 </body>
+
 </html>

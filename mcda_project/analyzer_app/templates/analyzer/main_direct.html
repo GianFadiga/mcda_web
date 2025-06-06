@@ -1,6 +1,7 @@
+<!-- analyzer/main_direct.html -->
 {% extends 'analyzer/base.html' %}
 
-{% block title %}Upload de Dados{% endblock %}
+{% block title %}Análise Completa{% endblock %}
 
 {% block content %}
 
@@ -14,18 +15,14 @@
             border: 1px solid #e0e0e0;
             border-radius: 8px;
             background: white;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
         }
-        h2 {
-            color: #2c3e50;
-            margin-top: 40px;
-            border-bottom: 2px solid #eee;
-            padding-bottom: 10px;
-        }
+
         h3 {
             color: #34495e;
             margin: 20px 0 10px;
         }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             line-height: 1.6;
@@ -35,18 +32,42 @@
             padding: 20px;
             background-color: #f9f9f9;
         }
+
+        nav {
+            border-radius: 7px;
+        }
     </style>
 </head>
+
 <body>
+    <div class="p-3 action-buttons no-print">
+        <!-- Botão Voltar -->
+        <button onclick="window.history.back()" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Voltar
+        </button>
+
+        <!-- Botão Exportar PDF -->
+        <button onclick="exportToPDF()" class="btn btn-primary">
+            <i class="bi bi-file-earmark-pdf"></i> Exportar PDF
+        </button>
+    </div>
 
     <div class="container mt-4">
-        <div class="alert alert-info">
-            Analisando arquivo: <strong>{{ file_name }}</strong>
+        <div class="alert alert-info position-relative p-4">
+            <!-- Exibindo nome do arquivo analisado -->
+            <span class="p-3 position-absolute top-50 start-0 translate-middle-y">
+                Analisando arquivo: <strong>{{ file_name }}</strong>
+            </span>
+
+            <!-- Exibindo data e hora da análise -->
+            <span class="p-3 position-absolute top-50 end-0 translate-middle-y">
+                <strong>{{ current_timestamp|date:"d/m/Y H:i:s" }}</strong>
+            </span>
         </div>
     </div>
 
-    <h1>Análise Completa de Produtos</h1>
-    
+    <h1>Análise Completa</h1>
+
     {% if total_score_chart %}
     <div class="section">
         <h2>Pontuação Total</h2>
@@ -55,42 +76,74 @@
         </div>
     </div>
     {% endif %}
-    
+
     {% if numeric_charts %}
     <div class="section">
         <h2>Métricas Numéricas</h2>
         {% for name, chart in numeric_charts %}
-            <div class="chart-container">
-                <h3>{{ name|title }}</h3>
-                {{ chart|safe }}
-            </div>
+        <div class="chart-container">
+            <h3>{{ name|title }}</h3>
+            {{ chart|safe }}
+        </div>
         {% endfor %}
     </div>
     {% endif %}
-    
+
     {% if string_charts %}
     <div class="section">
         <h2>Métricas de Texto</h2>
         {% for name, chart in string_charts %}
-            <div class="chart-container">
-                <h3>{{ name|title }}</h3>
-                {{ chart|safe }}
-            </div>
+        <div class="chart-container">
+            <h3>{{ name|title }}</h3>
+            {{ chart|safe }}
+        </div>
         {% endfor %}
     </div>
     {% endif %}
-    
+
     {% if boolean_charts %}
     <div class="section">
         <h2>Métricas Booleanas</h2>
         {% for name, chart in boolean_charts %}
-            <div class="chart-container">
-                <h3>{{ name|title }}</h3>
-                {{ chart|safe }}
-            </div>
+        <div class="chart-container">
+            <h3>{{ name|title }}</h3>
+            {{ chart|safe }}
+        </div>
         {% endfor %}
     </div>
     {% endif %}
 </body>
 
+<!-- Lógica para botão de gerar pdf -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+    function exportToPDF() {
+        // Mostra o toast
+        const exportToast = new bootstrap.Toast(document.getElementById('exportToast'));
+        exportToast.show();
+
+        // Configura o PDF (mantenha seu código existente)
+        const element = document.body;
+        const opt = {
+            margin: 10,
+            filename: '{{ file_name|slice:":-4" }}.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: {
+                scale: 2,
+                logging: true,
+                useCORS: true,
+                allowTaint: true
+            },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        // Gera o PDF após um pequeno delay para o toast aparecer
+        setTimeout(() => {
+            html2pdf().set(opt).from(element).save();
+
+            // Opcional: fecha o toast após 3 segundos
+            setTimeout(() => exportToast.hide(), 3000);
+        }, 500);
+    }
+</script>
 {% endblock %}

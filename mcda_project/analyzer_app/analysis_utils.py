@@ -1,3 +1,4 @@
+# analyzer_app/analysis_utils.py
 """
 Módulo de análise de dados para comparação de produtos.
 
@@ -972,7 +973,7 @@ class DataAnalyzer:
         return value_str
 
 def analyze_electronics_data(file_path: str) -> None:
-    """Executa análise completa para dados de eletrônicos."""
+    """Executa análise completa para dados de entrada."""
     try:
         print(f"--- Análise para arquivo: {file_path} ---")
         analyzer = DataAnalyzer(file_path)

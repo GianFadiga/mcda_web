@@ -1,47 +1,65 @@
-/* Tema claro (padrão) */
-body {
-    background-color: #f8f9fa;
-    color: #212529;
-    transition: background-color 0.3s ease, color 0.3s ease;
+/* Variáveis de tema */
+:root {
+    --light-bg: #f8f9fa;
+    --light-text: #212529;
+    --light-card: #ffffff;
+    --light-border: #dee2e6;
+    --light-placeholder: #6c757d;
+    --light-link: #0d6efd;
+    --light-link-hover: #0a58ca;
+
+    --dark-bg: #212529;
+    --dark-text: #f8f9fa;
+    --dark-card: #343a40;
+    --dark-border: #495057;
+    --dark-placeholder: #adb5bd;
+    --dark-link: #85b6ff;
+    --dark-link-hover: #a8c7ff;
 }
 
-.card {
-    background-color: #ffffff;
-    color: #212529;
-    border-color: #dee2e6;
+/* Transições suaves */
+body,
+.card,
+.btn,
+a {
     transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
+/* Tema claro (padrão) */
+body {
+    background-color: var(--light-bg);
+    color: var(--light-text);
+}
+
+h2 {
+    color: #2c3e50;
+    margin-top: 40px;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 10px;
+}
+
+.card {
+    background-color: var(--light-card);
+    border-color: var(--light-border);
+}
+
 /* Tema escuro */
-body.dark-theme {
-    background-color: #212529;
-    color: #f8f9fa;
+.dark-theme {
+    background-color: var(--dark-bg);
+    color: var(--dark-text);
+}
+
+.dark-theme h2 {
+    color: #ecf0f1;
+    border-bottom-color: #555;
 }
 
 .dark-theme .card {
-    background-color: #343a40;
-    color: #f8f9fa;
-    border-color: #495057;
+    background-color: var(--dark-card);
+    border-color: var(--dark-border);
 }
 
-.dark-theme .btn-outline-secondary {
-    color: #f8f9fa;
-    border-color: #6c757d;
-}
-
-.dark-theme .btn-outline-secondary:hover {
-    background-color: #6c757d;
-    color: #fff;
-}
-
-/* Classes utilitárias */
-.center-grid {
-    display: grid;
-    justify-content: center;
-    vertical-align: middle;
-}
-
-/* Melhorias para o botão de tema */
+/* Componentes comuns */
 #themeToggle {
     width: 50px;
     height: 50px;
@@ -53,4 +71,141 @@ body.dark-theme {
 
 #themeToggle i {
     font-size: 1.2rem;
+}
+
+.alert {
+    width: 100%;
+    padding: 10px 20px;
+}
+
+/* Botões */
+.dark-theme .btn-outline-secondary {
+    color: var(--dark-text);
+    border-color: #6c757d;
+}
+
+.dark-theme .btn-outline-secondary:hover {
+    background-color: #6c757d;
+}
+
+.dark-theme .btn-outline-primary {
+    color: var(--dark-text);
+    border-color: var(--dark-text);
+}
+
+.dark-theme .btn-outline-primary:hover {
+    background-color: var(--dark-text);
+    color: var(--dark-bg);
+}
+
+/* Formulários */
+.form-control::placeholder {
+    color: var(--light-placeholder);
+    opacity: 0.9;
+}
+
+.dark-theme .form-control::placeholder {
+    color: var(--dark-placeholder);
+}
+
+.form-text {
+    color: var(--light-placeholder);
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+}
+
+.dark-theme .form-text {
+    color: var(--dark-placeholder);
+}
+
+/* Links */
+.auth-link {
+    color: var(--light-link);
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.auth-link:hover {
+    color: var(--light-link-hover);
+}
+
+.dark-theme .auth-link {
+    color: var(--dark-link) !important;
+}
+
+.dark-theme .auth-link:hover {
+    color: var(--dark-link-hover) !important;
+}
+
+/* Utilitários */
+.toggle-password {
+    border-left: none !important;
+}
+
+.input-smaller {
+    width: 200px;
+}
+
+/* Links de autenticação - versão simplificada e definitiva */
+.auth-link {
+    transition: color 0.3s ease;
+    color: var(--bs-primary);
+    /* Azul Bootstrap */
+}
+
+.auth-link:hover {
+    color: var(--bs-primary-dark);
+    /* Azul mais escuro */
+}
+
+.dark-theme .auth-link {
+    color: #85b6ff !important;
+    /* Azul claro no tema escuro */
+}
+
+.dark-theme .auth-link:hover {
+    color: #a8c7ff !important;
+    /* Azul mais claro no hover */
+}
+
+/* Remova todas as outras regras para .auth-link e .theme-aware-link */
+
+/* Adicione estas regras no final do arquivo */
+.dynamic-link {
+    color: var(--bs-primary);
+    /* Azul do Bootstrap */
+    transition: color 0.3s ease;
+}
+
+.dynamic-link:hover {
+    color: var(--bs-primary-dark);
+    /* Azul mais escuro */
+}
+
+.dark-theme .dynamic-link {
+    color: #85b6ff !important;
+    /* Azul claro no tema escuro */
+}
+
+.dark-theme .dynamic-link:hover {
+    color: #a8c7ff !important;
+    /* Azul mais claro no hover */
+}
+
+.toast {
+    min-width: 250px;
+    background-color: #28a745;
+    /* Verde para sucesso */
+    color: white;
+    border-radius: 4px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.toast-body {
+    padding: 1rem;
+}
+
+.theme-aware-muted {
+    color: #6c757d;
+    /* padrão Bootstrap claro */
 }

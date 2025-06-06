@@ -1,0 +1,48 @@
+{% extends 'analyzer/base.html' %}
+{% block content %}
+<h2>Analysis Logs</h2>
+<table border="1" cellpadding="5">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Analysis</th>
+            <th>Action</th>
+            <th>Timestamp</th>
+            <th>Old Data</th>
+            <th>New Data</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for log in page_obj %}
+        <tr>
+            <td>{{ log.id }}</td>
+            <td>{{ log.analysis.name }}</td>
+            <td>{{ log.action }}</td>
+            <td>{{ log.timestamp }}</td>
+            <td>
+                <pre>{{ log.old_data|default:"-" }}</pre>
+            </td>
+            <td>
+                <pre>{{ log.new_data|default:"-" }}</pre>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="6">No logs found.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div>
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}">Previous</a>
+    {% endif %}
+
+    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}">Next</a>
+    {% endif %}
+</div>
+{% endblock %}
