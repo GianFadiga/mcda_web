@@ -1,3 +1,4 @@
+# mcda_project/settings.py
 from pathlib import Path
 import os
 import pymysql
@@ -23,7 +24,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'mcda_project.analyzer_app',
+    'analyzer_app',  # <<<<< corrigido aqui
     'widget_tweaks',
 ]
 
@@ -38,12 +39,12 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'mcda_project.urls'
+ROOT_URLCONF = 'mcda_project.urls'  # Este ainda está correto
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],
+        'DIRS': [BASE_DIR / 'templates'],  # Verifique se suas templates estão aqui ou em cada app
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
