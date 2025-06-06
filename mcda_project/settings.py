@@ -24,7 +24,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'analyzer_app',  # <<<<< corrigido aqui
+    'analyzer_app',
     'widget_tweaks',
 ]
 
@@ -39,7 +39,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'urls'
+ROOT_URLCONF = 'mcda_project.urls'
 
 TEMPLATES = [
     {
