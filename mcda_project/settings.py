@@ -39,12 +39,12 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'mcda_project.urls'  # Este ainda está correto
+ROOT_URLCONF = 'urls'
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],  # Verifique se suas templates estão aqui ou em cada app
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -57,7 +57,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'mcda_project.wsgi.application'
+WSGI_APPLICATION = 'wsgi.application'
 
 DATABASES = {
     'default': dj_database_url.config(default=config('DATABASE_URL'))
