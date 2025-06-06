@@ -23,7 +23,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'analyzer_app',
+    'mcda_project.analyzer_app',
     'widget_tweaks',
 ]
 
