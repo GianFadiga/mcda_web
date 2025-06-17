@@ -1,0 +1,7 @@
+Modelo,Atributo 1,Atributo 2,Atributo 3,Atributo 4,Atributo 5,Atributo 6,Atributo 7,Atributo 8,Atributo 9
+PESO,0.25,0.2,0.1,0.05,0.05,0.15,0.1,0.05,0.05,
+TIPO,number,number,number,number,number,number,number,boolean,boolean,
+FUNCAO,i_proportional,proportional,proportional,proportional,proportional,i_proportional,proportional,boolean,boolean,
+BOM,2000,80,3,2,2,3,5,TRUE,TRUE,
+NEUTRO,3000,60,2,1,1,7,3,TRUE,FALSE,
+EXEMPLO,2500,70,2,2,1,5,4,TRUE,TRUE,
