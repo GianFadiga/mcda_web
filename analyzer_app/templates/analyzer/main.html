@@ -17,13 +17,13 @@
                     <div class="card-body">
                         <h2 class="card-title text-center mb-4">Analisador de Dados</h2>
                         
-                        <form method="post" action="{% url 'upload_and_analyze' %}" enctype="multipart/form-data">
+                        {# CORREÇÃO APLICADA AQUI na action do formulário #}
+                        <form method="post" action="{% url 'upload_form_root' %}" enctype="multipart/form-data">
                             {% csrf_token %}
                             <div class="mb-4">
                                 <label for="dataFile" class="form-label">
                                     Selecione o arquivo CSV para análise:
                                 </label>
-                                {# Usando o input manual que você já tinha, em vez de {{ form.file }} #}
                                 <input type="file" class="form-control form-control-lg" name="file" id="dataFile" accept=".csv" required>
                             </div>
                             <div class="d-grid gap-2">
@@ -44,7 +44,7 @@
     <div id="results-section" class="mt-5">
         <h3 class="text-center mb-4">Resultados da Análise para: <strong>{{ file_name }}</strong></h3>
         <div class="text-center mb-4">
-            <a href="{% url 'upload_and_analyze' %}" class="btn btn-secondary">Analisar outro arquivo</a>
+            <a href="{% url 'upload_form_root' %}" class="btn btn-secondary">Analisar outro arquivo</a>
         </div>
         
         {% if podium_data %}
@@ -101,7 +101,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const podiumItems = document.querySelectorAll('.podium-item');
     
     if (podiumItems.length > 0) {
-        // Adiciona a classe 'active' ao primeiro lugar por padrão
         const firstPlace = document.querySelector('.podium-item.first');
         if(firstPlace) {
             firstPlace.classList.add('active');
@@ -109,19 +108,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
         podiumItems.forEach(item => {
             item.addEventListener('click', function() {
-                // Remove a classe 'active' de todos
                 podiumItems.forEach(p => p.classList.remove('active'));
-                // Adiciona a classe 'active' ao item clicado
                 this.classList.add('active');
-
-                // Pega o ranking (1, 2 ou 3) do atributo data-rank
                 const rank = this.getAttribute('data-rank');
-
-                // Esconde todos os detalhes
                 const allDetails = document.querySelectorAll('.podium-details');
                 allDetails.forEach(detail => detail.classList.add('d-none'));
-
-                // Mostra o detalhe correspondente
                 const activeDetail = document.getElementById('details-' + rank);
                 if (activeDetail) {
                     activeDetail.classList.remove('d-none');
