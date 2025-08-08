@@ -18,7 +18,7 @@
         <i class="bi bi-question-circle" data-bs-toggle="tooltip" data-bs-placement="right"
           title="150 caracteres ou menos. Letras, números e @/./+/-/_ apenas."></i>
       </div>
-      {% render_field form.username class="form-control" placeholder="Digite seu nome de usuário" %}
+      {% render_field form.username class="form-control" placeholder="Digite seu nome de usuário" autofocus=True %}
       {% if form.username.errors %}
       <div class="text-danger mt-1">
         {% for error in form.username.errors %}
