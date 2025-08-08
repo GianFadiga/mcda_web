@@ -2,48 +2,64 @@
 {% load static %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'analyzer_app/static/css/style.css' %}">
+{# Caminho correto para o CSS do pódio que criamos #}
+<link rel="stylesheet" href="{% static 'analyzer/css/podium.css' %}">
 {% endblock %}
 
 {% block content %}
 <div class="container mt-4">
-    <div class="row">
-        <div class="col-md-6 offset-md-3">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h2 class="card-title text-center mb-4">Analisador de Dados</h2>
-                    <form method="post" enctype="multipart/form-data">
-                        {% csrf_token %}
-                        <div class="mb-3">
-                            <label for="id_file" class="form-label">Selecione o arquivo CSV:</label>
-                            {{ form.file }}
-                        </div>
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary">Analisar</button>
-                        </div>
-                    </form>
+    
+    {# SEÇÃO DE UPLOAD - Aparece se NÃO houver resultados #}
+    <div id="upload-section" {% if has_results %}class="d-none"{% endif %}>
+        <div class="row">
+            <div class="col-md-6 offset-md-3">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h2 class="card-title text-center mb-4">Analisador de Dados</h2>
+                        
+                        <form method="post" action="{% url 'upload_and_analyze' %}" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <div class="mb-4">
+                                <label for="dataFile" class="form-label">
+                                    Selecione o arquivo CSV para análise:
+                                </label>
+                                {# Usando o input manual que você já tinha, em vez de {{ form.file }} #}
+                                <input type="file" class="form-control form-control-lg" name="file" id="dataFile" accept=".csv" required>
+                            </div>
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary btn-lg rounded-pill">
+                                    <i class="bi bi-upload me-2"></i> Analisar Dados
+                                </button>
+                            </div>
+                        </form>
+                        
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
+    {# SEÇÃO DE RESULTADOS - Aparece se HOUVER resultados #}
     {% if has_results %}
     <div id="results-section" class="mt-5">
-        <h3 class="text-center mb-4">Resultados da Análise</h3>
+        <h3 class="text-center mb-4">Resultados da Análise para: <strong>{{ file_name }}</strong></h3>
+        <div class="text-center mb-4">
+            <a href="{% url 'upload_and_analyze' %}" class="btn btn-secondary">Analisar outro arquivo</a>
+        </div>
         
         {% if podium_data %}
         <div class="podium-container mb-5">
-            <div class="podium-item second {% if podium_data|length < 2 %}d-none{% endif %}">
+            <div class="podium-item second {% if podium_data|length < 2 %}d-none{% endif %}" data-rank="2">
                 <div class="podium-rank">2</div>
                 <div class="podium-name">{{ podium_data.1.name }}</div>
                 <div class="podium-score">Score: {{ podium_data.1.score }}</div>
             </div>
-            <div class="podium-item first">
+            <div class="podium-item first" data-rank="1">
                 <div class="podium-rank">1</div>
                 <div class="podium-name">{{ podium_data.0.name }}</div>
                 <div class="podium-score">Score: {{ podium_data.0.score }}</div>
             </div>
-            <div class="podium-item third {% if podium_data|length < 3 %}d-none{% endif %}">
+            <div class="podium-item third {% if podium_data|length < 3 %}d-none{% endif %}" data-rank="3">
                 <div class="podium-rank">3</div>
                 <div class="podium-name">{{ podium_data.2.name }}</div>
                 <div class="podium-score">Score: {{ podium_data.2.score }}</div>
@@ -84,33 +100,35 @@
 document.addEventListener('DOMContentLoaded', function() {
     const podiumItems = document.querySelectorAll('.podium-item');
     
-    // Adiciona a classe 'active' ao primeiro lugar por padrão
-    const firstPlace = document.querySelector('.podium-item.first');
-    if(firstPlace) {
-        firstPlace.classList.add('active');
-    }
+    if (podiumItems.length > 0) {
+        // Adiciona a classe 'active' ao primeiro lugar por padrão
+        const firstPlace = document.querySelector('.podium-item.first');
+        if(firstPlace) {
+            firstPlace.classList.add('active');
+        }
 
-    podiumItems.forEach((item, index) => {
-        item.addEventListener('click', function() {
-            // Remove a classe 'active' de todos
-            podiumItems.forEach(p => p.classList.remove('active'));
-            // Adiciona a classe 'active' ao item clicado
-            this.classList.add('active');
+        podiumItems.forEach(item => {
+            item.addEventListener('click', function() {
+                // Remove a classe 'active' de todos
+                podiumItems.forEach(p => p.classList.remove('active'));
+                // Adiciona a classe 'active' ao item clicado
+                this.classList.add('active');
 
-            // Pega o ranking (1, 2 ou 3)
-            const rank = this.querySelector('.podium-rank').textContent;
+                // Pega o ranking (1, 2 ou 3) do atributo data-rank
+                const rank = this.getAttribute('data-rank');
 
-            // Esconde todos os detalhes
-            const allDetails = document.querySelectorAll('.podium-details');
-            allDetails.forEach(detail => detail.classList.add('d-none'));
+                // Esconde todos os detalhes
+                const allDetails = document.querySelectorAll('.podium-details');
+                allDetails.forEach(detail => detail.classList.add('d-none'));
 
-            // Mostra o detalhe correspondente
-            const activeDetail = document.getElementById('details-' + rank);
-            if (activeDetail) {
-                activeDetail.classList.remove('d-none');
-            }
+                // Mostra o detalhe correspondente
+                const activeDetail = document.getElementById('details-' + rank);
+                if (activeDetail) {
+                    activeDetail.classList.remove('d-none');
+                }
+            });
         });
-    });
+    }
 });
 </script>
 {% endblock %}
