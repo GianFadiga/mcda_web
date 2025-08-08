@@ -209,3 +209,73 @@ h2 {
     color: #6c757d;
     /* padrão Bootstrap claro */
 }
+
+.podium-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 10px;
+    height: 300px; /* Ajuste a altura conforme necessário */
+    padding: 20px;
+    border-radius: 8px;
+    background-color: #f8f9fa; /* Um fundo sutil */
+}
+
+.podium-item {
+    width: 28%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end; /* Alinha o conteúdo na parte de baixo */
+    text-align: center;
+    color: white;
+    padding: 20px 10px;
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.podium-item:hover {
+    transform: translateY(-10px);
+}
+
+.podium-item.active {
+    transform: translateY(-15px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    border: 3px solid #fff;
+}
+
+.podium-item.first {
+    height: 100%;
+    background-color: #ffd700; /* Dourado */
+}
+
+.podium-item.second {
+    height: 80%;
+    background-color: #c0c0c0; /* Prata */
+}
+
+.podium-item.third {
+    height: 60%;
+    background-color: #cd7f32; /* Bronze */
+}
+
+.podium-rank {
+    font-size: 3em;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.podium-name {
+    font-size: 1.2em;
+    font-weight: 600;
+    margin-top: 10px;
+    word-break: break-word;
+}
+
+.podium-score {
+    font-size: 0.9em;
+    margin-top: 5px;
+    font-style: italic;
+}
