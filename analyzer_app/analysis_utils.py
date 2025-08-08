@@ -624,6 +624,70 @@ class DataAnalyzer:
             if score > 0: print(f"  - {criterion}: {current_value} [Vantagem] {justification}")
             elif score < 0: print(f"  - {criterion}: {current_value} [Desvantagem] {justification}")
             else: print(f"  - {criterion}: {current_value} [Neutro] {justification}")
+        
+    def get_podium_details(self) -> list:
+        """
+        Retorna uma lista com os detalhes dos 3 melhores produtos para o pódio.
+        """
+        if 'Total_Score' not in self.calculation_df.columns:
+            return []
+
+        # Ordena o DataFrame pela pontuação total
+        sorted_df = self.calculation_df.sort_values('Total_Score', ascending=False)
+        
+        # Pega os 3 melhores (ou menos, se não houver 3)
+        top_products = sorted_df.head(3)
+
+        podium_list = []
+        rank = 1
+        for index, product in top_products.iterrows():
+            details_list = self._get_recommendation_details(product)
+            podium_list.append({
+                'rank': rank,
+                'name': product[self.model_column],
+                'score': f"{product['Total_Score']:.2f}",
+                'details': details_list
+            })
+            rank += 1
+        
+        return podium_list
+
+    def _get_recommendation_details(self, product: pd.Series) -> list:
+        """
+        Retorna uma lista de strings com a justificativa da pontuação de um produto.
+        """
+        if self.weights is None: return []
+
+        details_list = []
+        sorted_criteria = self.weights.sort_values(ascending=False).index
+
+        for col in sorted_criteria:
+            score_col = f"{col}_score"
+            if score_col not in product or pd.isna(product[score_col]): continue
+            
+            score = product[score_col]
+            current_value = product.get(col, "N/A")
+            
+            # Formata o valor para exibição amigável
+            if isinstance(current_value, bool):
+                value_str = "Sim" if current_value else "Não"
+            elif isinstance(current_value, (int, float)):
+                value_str = f"{current_value:.1f}"
+            else:
+                value_str = str(current_value)
+
+            # Simplifica a justificativa
+            justification = ""
+            if score > 0:
+                justification = "[Vantagem]"
+            elif score < 0:
+                justification = "[Desvantagem]"
+            else:
+                justification = "[Neutro]"
+
+            details_list.append(f"<b>{col}:</b> {value_str} {justification} (Pontos: {score:.2f})")
+        
+        return details_list
 
 
 def analyze_data(file_path: str) -> Dict:
@@ -645,73 +709,7 @@ def analyze_data(file_path: str) -> Dict:
     except Exception as e:
         print(f"Ocorreu um erro inesperado ao analisar {file_path}: {str(e)}")
         return {"error": str(e), "success": False}
-
-# Adicione este método DENTRO da classe DataAnalyzer em analysis_utils.py
-
-def get_podium_details(self) -> list:
-    """
-    Retorna uma lista com os detalhes dos 3 melhores produtos para o pódio.
-    """
-    if 'Total_Score' not in self.calculation_df.columns:
-        return []
-
-    # Ordena o DataFrame pela pontuação total
-    sorted_df = self.calculation_df.sort_values('Total_Score', ascending=False)
     
-    # Pega os 3 melhores (ou menos, se não houver 3)
-    top_products = sorted_df.head(3)
-
-    podium_list = []
-    rank = 1
-    for index, product in top_products.iterrows():
-        details_list = self._get_recommendation_details(product)
-        podium_list.append({
-            'rank': rank,
-            'name': product[self.model_column],
-            'score': f"{product['Total_Score']:.2f}",
-            'details': details_list
-        })
-        rank += 1
-    
-    return podium_list
-
-def _get_recommendation_details(self, product: pd.Series) -> list:
-    """
-    Retorna uma lista de strings com a justificativa da pontuação de um produto.
-    """
-    if self.weights is None: return []
-
-    details_list = []
-    sorted_criteria = self.weights.sort_values(ascending=False).index
-
-    for col in sorted_criteria:
-        score_col = f"{col}_score"
-        if score_col not in product or pd.isna(product[score_col]): continue
-        
-        score = product[score_col]
-        current_value = product.get(col, "N/A")
-        
-        # Formata o valor para exibição amigável
-        if isinstance(current_value, bool):
-            value_str = "Sim" if current_value else "Não"
-        elif isinstance(current_value, (int, float)):
-            value_str = f"{current_value:.1f}"
-        else:
-            value_str = str(current_value)
-
-        # Simplifica a justificativa
-        justification = ""
-        if score > 0:
-            justification = "[Vantagem]"
-        elif score < 0:
-            justification = "[Desvantagem]"
-        else:
-            justification = "[Neutro]"
-
-        details_list.append(f"<b>{col}:</b> {value_str} {justification} (Pontos: {score:.2f})")
-    
-    return details_list
-
 if __name__ == "__main__":
     import sys
     if len(sys.argv) > 1:
