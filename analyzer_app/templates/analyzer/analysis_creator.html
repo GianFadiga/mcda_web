@@ -33,20 +33,21 @@
                             <label class="form-label">{{ form.criterion_type.label }}</label>
                             {{ form.criterion_type }}
                         </div>
-                        <div class="col-md-2 conditional-numeric">
-                            <label class="form-label">{{ form.proportionality.label }}</label>
-                            {{ form.proportionality }}
-                        </div>
-                         <div class="col-md-2">
+                        <div class="col-md-2">
                             <label class="form-label">{{ form.weight.label }}</label>
                             {{ form.weight }}
                         </div>
-                        <div class="col-md-2"> <div class="row">
-                                <div class="col-6 conditional-numeric">
+                        <div class="col-md-4 conditional-numeric">
+                            <div class="row">
+                                <div class="col-6">
+                                    <label class="form-label">{{ form.proportionality.label }}</label>
+                                    {{ form.proportionality }}
+                                </div>
+                                <div class="col-3">
                                     <label class="form-label">{{ form.good_value.label }}</label>
                                     {{ form.good_value }}
                                 </div>
-                                <div class="col-6 conditional-numeric">
+                                <div class="col-3">
                                     <label class="form-label">{{ form.neutral_value.label }}</label>
                                     {{ form.neutral_value }}
                                 </div>
@@ -61,10 +62,6 @@
                 <button type="button" id="add-criterion-btn" class="btn btn-outline-success mt-2">
                     <i class="bi bi-plus-circle me-2"></i>Adicionar Critério
                 </button>
-                <button type="button" id="add-criterion-btn" class="btn btn-outline-success mt-2">
-                    <i class="bi bi-plus-circle me-2"></i>Adicionar Critério
-                </button>
-
                 <div class="mt-3 text-end">
                     <strong>Soma dos Pesos: </strong>
                     <span id="total-weight-display" class="fw-bold">0.00</span> / 1.00
@@ -73,7 +70,7 @@
         </div>
 
         <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
-            <button type="submit" name="action" value="download" class="btn btn-secondary">Baixar CSV</button>
+            <button type="submit" name="action" value="download" class="btn btn-secondary">Baixar CSV dos Critérios</button>
             <button type="submit" name="action" value="analyze" class="btn btn-primary">Analisar Agora</button>
         </div>
     </form>
@@ -90,20 +87,21 @@
             <label class="form-label">{{ criteria_formset.empty_form.criterion_type.label }}</label>
             {{ criteria_formset.empty_form.criterion_type }}
         </div>
-        <div class="col-md-2 conditional-numeric">
-            <label class="form-label">{{ criteria_formset.empty_form.proportionality.label }}</label>
-            {{ criteria_formset.empty_form.proportionality }}
-        </div>
         <div class="col-md-2">
             <label class="form-label">{{ criteria_formset.empty_form.weight.label }}</label>
             {{ criteria_formset.empty_form.weight }}
         </div>
-        <div class="col-md-2"> <div class="row">
-                <div class="col-6 conditional-numeric">
+        <div class="col-md-4 conditional-numeric">
+            <div class="row">
+                <div class="col-6">
+                    <label class="form-label">{{ criteria_formset.empty_form.proportionality.label }}</label>
+                    {{ criteria_formset.empty_form.proportionality }}
+                </div>
+                <div class="col-3">
                     <label class="form-label">{{ criteria_formset.empty_form.good_value.label }}</label>
                     {{ criteria_formset.empty_form.good_value }}
                 </div>
-                <div class="col-6 conditional-numeric">
+                <div class="col-3">
                     <label class="form-label">{{ criteria_formset.empty_form.neutral_value.label }}</label>
                     {{ criteria_formset.empty_form.neutral_value }}
                 </div>
@@ -116,87 +114,80 @@
 </template>
 
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    const addCriterionBtn = document.getElementById('add-criterion-btn');
-    const container = document.getElementById('criteria-forms-container');
-    const template = document.getElementById('criterion-form-template');
-    const totalFormsInput = document.querySelector('#id_criteria-TOTAL_FORMS');
-    const totalWeightDisplay = document.getElementById('total-weight-display');
+    // SCRIPT ATUALIZADO PARA O NOVO LAYOUT
+    document.addEventListener('DOMContentLoaded', function () {
+        const addCriterionBtn = document.getElementById('add-criterion-btn');
+        const container = document.getElementById('criteria-forms-container');
+        const template = document.getElementById('criterion-form-template');
+        const totalFormsInput = document.querySelector('#id_criteria-TOTAL_FORMS');
+        const totalWeightDisplay = document.getElementById('total-weight-display');
 
-    function updateEventListeners() {
-        // Lógica de mostrar/esconder campos numéricos
-        document.querySelectorAll('select[name$="-criterion_type"]').forEach(select => {
-            select.removeEventListener('change', handleTypeChange); // Evita duplicar listeners
-            select.addEventListener('change', handleTypeChange);
-        });
+        function setupEventListeners(element) {
+            // Delegação de eventos a partir do container principal
+            element.addEventListener('change', function(event) {
+                if (event.target.matches('select[name$="-criterion_type"]')) {
+                    handleTypeChange(event.target);
+                }
+                if (event.target.matches('input[name$="-weight"]')) {
+                    updateTotalWeight();
+                }
+            });
 
-        // Lógica do botão de excluir
-        document.querySelectorAll('.delete-criterion-btn').forEach(btn => {
-            btn.removeEventListener('click', handleDeleteClick);
-            btn.addEventListener('click', handleDeleteClick);
-        });
-
-        // Lógica para atualizar a soma dos pesos
-        document.querySelectorAll('input[name$="-weight"]').forEach(input => {
-            input.removeEventListener('input', updateTotalWeight);
-            input.addEventListener('input', updateTotalWeight);
-        });
-    }
-
-    function handleTypeChange(event) {
-        const form = event.target.closest('.criterion-form');
-        const numericFields = form.querySelectorAll('.conditional-numeric');
-        const show = event.target.value === 'number';
-        numericFields.forEach(field => field.style.display = show ? 'block' : 'none');
-    }
-
-    function handleDeleteClick(event) {
-        const form = event.target.closest('.criterion-form');
-        const deleteCheckbox = form.querySelector('input[type="checkbox"][name$="-DELETE"]');
-        if (deleteCheckbox) {
-            deleteCheckbox.checked = true;
-            form.style.display = 'none';
-            updateTotalWeight(); // Recalcula o peso ao excluir
+            element.addEventListener('click', function(event) {
+                if (event.target.matches('.delete-criterion-btn')) {
+                    handleDeleteClick(event.target);
+                }
+            });
         }
-    }
+        
+        function handleTypeChange(selectElement) {
+            const form = selectElement.closest('.criterion-form');
+            const numericGroup = form.querySelector('.conditional-numeric');
+            const show = selectElement.value === 'number';
+            numericGroup.style.display = show ? 'block' : 'none';
+        }
 
-    function updateTotalWeight() {
-        let totalWeight = 0;
-        document.querySelectorAll('.criterion-form').forEach(form => {
-            const isDeleted = form.querySelector('input[type="checkbox"][name$="-DELETE"]')?.checked;
-            if (form.style.display !== 'none' && !isDeleted) {
-                const weightInput = form.querySelector('input[name$="-weight"]');
-                const weightValue = parseFloat(weightInput.value) || 0;
-                totalWeight += weightValue;
+        function handleDeleteClick(button) {
+            const form = button.closest('.criterion-form');
+            const deleteCheckbox = form.querySelector('input[type="checkbox"][name$="-DELETE"]');
+            if (deleteCheckbox) {
+                deleteCheckbox.checked = true;
+                form.style.display = 'none';
+                updateTotalWeight();
             }
+        }
+
+        function updateTotalWeight() {
+            let totalWeight = 0;
+            container.querySelectorAll('.criterion-form').forEach(form => {
+                const isDeleted = form.querySelector('input[type="checkbox"][name$="-DELETE"]')?.checked;
+                if (form.style.display !== 'none' && !isDeleted) {
+                    const weightInput = form.querySelector('input[name$="-weight"]');
+                    totalWeight += parseFloat(weightInput.value) || 0;
+                }
+            });
+            totalWeightDisplay.textContent = totalWeight.toFixed(2);
+            totalWeightDisplay.classList.toggle('text-danger', totalWeight > 1.0);
+        }
+
+        addCriterionBtn.addEventListener('click', function () {
+            let formNum = parseInt(totalFormsInput.value);
+            const templateHTML = template.innerHTML.replace(/__prefix__/g, formNum);
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = templateHTML;
+            const newFormElement = tempDiv.firstElementChild;
+            container.appendChild(newFormElement);
+            totalFormsInput.value = formNum + 1;
+            
+            // Força a atualização da visibilidade do novo formulário
+            handleTypeChange(newFormElement.querySelector('select[name$="-criterion_type"]'));
+            updateTotalWeight();
         });
 
-        totalWeightDisplay.textContent = totalWeight.toFixed(2);
-        if (totalWeight > 1.0) {
-            totalWeightDisplay.classList.add('text-danger');
-        } else {
-            totalWeightDisplay.classList.remove('text-danger');
-        }
-    }
-
-    addCriterionBtn.addEventListener('click', function () {
-        let formNum = parseInt(totalFormsInput.value);
-        const templateHTML = template.innerHTML.replace(/__prefix__/g, formNum);
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = templateHTML;
-        const newFormElement = tempDiv.firstElementChild;
-        container.appendChild(newFormElement);
-        totalFormsInput.value = formNum + 1;
-
-        // Dispara os eventos para o novo formulário
-        newFormElement.querySelector('select[name$="-criterion_type"]').dispatchEvent(new Event('change'));
-        updateEventListeners();
+        // Inicializa para os formulários já existentes na página
+        setupEventListeners(container);
+        container.querySelectorAll('select[name$="-criterion_type"]').forEach(handleTypeChange);
         updateTotalWeight();
     });
-
-    // Inicializa tudo
-    updateEventListeners();
-    updateTotalWeight();
-});
 </script>
 {% endblock %}
