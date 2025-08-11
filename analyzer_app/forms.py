@@ -3,6 +3,8 @@ from django import forms
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.forms import UserCreationForm
 from django.core.exceptions import ValidationError
+from django import forms
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 User = get_user_model()
 
