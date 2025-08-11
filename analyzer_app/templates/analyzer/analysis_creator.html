@@ -7,21 +7,24 @@
 {% block content %}
 <div class="container mt-4">
     <h2 class="mb-4">Criador de Planilha de Análise</h2>
-    <p>Use o formulário abaixo para definir os critérios da sua análise. Clique em "Adicionar Critério" para inserir novas linhas.</p>
+    
+    {% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-danger">{{ message }}</div>
+    {% endfor %}
+    {% endif %}
     
     <form method="post" id="analysis-creator-form">
         {% csrf_token %}
         
         <div class="card shadow-sm">
-            <div class="card-header">
-                <h4 class="mb-0">Etapa 1: Defina os Critérios</h4>
-            </div>
+            <div class="card-header"><h4 class="mb-0">Etapa 1: Defina os Critérios</h4></div>
             <div class="card-body">
                 {{ criteria_formset.management_form }}
                 <div id="criteria-forms-container">
                     {% for form in criteria_formset %}
-                    <div class="row criterion-form mb-3 border-bottom pb-3">
-                        <div class="col-md-3">
+                    <div class="row criterion-form align-items-end mb-3 border-bottom pb-3">
+                        <div style="display:none;">{{ form.DELETE }}</div> <div class="col-md-3">
                             <label class="form-label">{{ form.name.label }}</label>
                             {{ form.name }}
                         </div>
@@ -37,7 +40,7 @@
                             <label class="form-label">{{ form.weight.label }}</label>
                             {{ form.weight }}
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <div class="row">
                                 <div class="col-6 conditional-numeric">
                                     <label class="form-label">{{ form.good_value.label }}</label>
@@ -49,6 +52,9 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="col-md-1">
+                            <button type="button" class="btn btn-danger btn-sm delete-criterion-btn">Excluir</button>
+                        </div>
                     </div>
                     {% endfor %}
                 </div>
@@ -59,18 +65,15 @@
         </div>
 
         <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
-            <button type="submit" name="action" value="download" class="btn btn-secondary">
-                <i class="bi bi-download me-2"></i>Baixar CSV
-            </button>
-            <button type="submit" name="action" value="analyze" class="btn btn-primary">
-                <i class="bi bi-bar-chart-line-fill me-2"></i>Analisar Agora
-            </button>
+            <button type="submit" name="action" value="download" class="btn btn-secondary">Baixar CSV</button>
+            <button type="submit" name="action" value="analyze" class="btn btn-primary">Analisar Agora</button>
         </div>
     </form>
 </div>
 
 <template id="criterion-form-template">
-    <div class="row criterion-form mb-3 border-bottom pb-3">
+    <div class="row criterion-form align-items-end mb-3 border-bottom pb-3">
+        <div style="display:none;">{{ criteria_formset.empty_form.DELETE }}</div>
         <div class="col-md-3">
             <label class="form-label">{{ criteria_formset.empty_form.name.label }}</label>
             {{ criteria_formset.empty_form.name }}
@@ -87,7 +90,7 @@
             <label class="form-label">{{ criteria_formset.empty_form.weight.label }}</label>
             {{ criteria_formset.empty_form.weight }}
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="row">
                 <div class="col-6 conditional-numeric">
                     <label class="form-label">{{ criteria_formset.empty_form.good_value.label }}</label>
@@ -99,6 +102,9 @@
                 </div>
             </div>
         </div>
+        <div class="col-md-1">
+            <button type="button" class="btn btn-danger btn-sm delete-criterion-btn">Excluir</button>
+        </div>
     </div>
 </template>
 
@@ -108,52 +114,42 @@ document.addEventListener('DOMContentLoaded', function () {
     const container = document.getElementById('criteria-forms-container');
     const template = document.getElementById('criterion-form-template');
     const totalFormsInput = document.querySelector('#id_criteria-TOTAL_FORMS');
-    
-    // --- LÓGICA PARA ADICIONAR NOVOS FORMULÁRIOS (CORRIGIDA) ---
-    addCriterionBtn.addEventListener('click', function () {
-        // Pega o número atual de formulários
-        let formNum = parseInt(totalFormsInput.value);
 
-        // Pega o conteúdo do template como uma string de texto
-        const templateHTML = template.innerHTML;
-        
-        // Substitui o prefixo de placeholder pelo número do novo formulário
-        const newFormHTML = templateHTML.replace(/__prefix__/g, formNum);
-        
-        // Cria um elemento temporário para inserir o novo HTML
+    // --- LÓGICA PARA ADICIONAR NOVOS FORMULÁRIOS ---
+    addCriterionBtn.addEventListener('click', function () {
+        let formNum = parseInt(totalFormsInput.value);
+        const templateHTML = template.innerHTML.replace(/__prefix__/g, formNum);
         const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = newFormHTML;
-        
-        // Pega o elemento de formulário real de dentro do div temporário e o adiciona ao container
+        tempDiv.innerHTML = templateHTML;
         const newFormElement = tempDiv.firstElementChild;
         container.appendChild(newFormElement);
-        
-        // Incrementa o número total de formulários no campo de gerenciamento
         totalFormsInput.value = formNum + 1;
-
-        // Re-aplica a lógica de visibilidade para todos os formulários, incluindo o novo
         updateFormVisibility();
     });
 
-    // --- LÓGICA PARA MOSTRAR/ESCONDER CAMPOS NUMÉRICOS ---
+    // --- LÓGICA PARA EXCLUIR E MOSTRAR/ESCONDER CAMPOS ---
     function updateFormVisibility() {
-        // Usa 'delegation' para garantir que mesmo novos formulários funcionem
-        document.body.addEventListener('change', function(event) {
-            if (event.target.matches('select[name$="-criterion_type"]')) {
-                const form = event.target.closest('.criterion-form');
-                const numericFields = form.querySelectorAll('.conditional-numeric');
-                
-                if (event.target.value === 'number') {
-                    numericFields.forEach(field => field.style.display = 'block');
-                } else {
-                    numericFields.forEach(field => field.style.display = 'none');
-                }
-            }
-        });
+        document.querySelectorAll('.criterion-form').forEach(form => {
+            // Lógica de mostrar/esconder campos numéricos
+            const typeSelect = form.querySelector('select[name$="-criterion_type"]');
+            const numericFields = form.querySelectorAll('.conditional-numeric');
+            const toggleNumericFields = () => {
+                const show = typeSelect.value === 'number';
+                numericFields.forEach(field => field.style.display = show ? 'block' : 'none');
+            };
+            toggleNumericFields();
+            typeSelect.addEventListener('change', toggleNumericFields);
 
-        // Executa uma vez no início para os formulários existentes
-        document.querySelectorAll('select[name$="-criterion_type"]').forEach(select => {
-            select.dispatchEvent(new Event('change'));
+            // Lógica do botão de excluir
+            const deleteBtn = form.querySelector('.delete-criterion-btn');
+            const deleteCheckbox = form.querySelector('input[type="checkbox"][name$="-DELETE"]');
+            if (deleteBtn && deleteCheckbox) {
+                deleteBtn.addEventListener('click', function () {
+                    // Marca o checkbox para exclusão no backend e esconde o formulário
+                    deleteCheckbox.checked = true;
+                    form.style.display = 'none';
+                });
+            }
         });
     }
 

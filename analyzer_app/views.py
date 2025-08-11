@@ -13,6 +13,10 @@ from django.contrib.auth import (
     logout,
     update_session_auth_hash,
 )
+import io      # <<< ADICIONE ESTA LINHA
+import csv     # <<< ADICIONE ESTA LINHA
+import tempfile
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordChangeForm
 from django.core.paginator import Paginator
@@ -246,23 +250,29 @@ def profile_view(request):
         'change_password': 'change_password' in request.POST,
     })
     
-# SUBSTITUA A VIEW analysis_creator_view INTEIRA POR ESTA
+# SUBSTITUA A VIEW analysis_creator_view
 @login_required
 def analysis_creator_view(request):
-    """
-    View para a página de criação de análises (planilhas).
-    """
-    CriterionFormSet = formset_factory(CriterionForm, extra=1)
+    # Habilita a funcionalidade de exclusão no formset
+    CriterionFormSet = formset_factory(CriterionForm, extra=1, can_delete=True)
 
     if request.method == 'POST':
         formset = CriterionFormSet(request.POST, prefix='criteria')
         if formset.is_valid():
             
-            # Chama a nova função para gerar o conteúdo do CSV
-            csv_content, error_message = _generate_csv_string_from_formset(formset.cleaned_data)
+            # VALIDAÇÃO DA SOMA DOS PESOS
+            total_weight = sum(form.cleaned_data.get('weight', 0) for form in formset.cleaned_data if not form.get('DELETE', False))
+            
+            if total_weight > 1.0:
+                messages.error(request, f"A soma dos pesos dos critérios ({total_weight:.2f}) não pode ultrapassar 1.0.")
+                # Re-renderiza o formset com os dados preenchidos para correção
+                return render(request, 'analyzer/analysis_creator.html', {'criteria_formset': formset})
+
+            # Passa os formulários válidos (não excluídos) para a função de geração
+            valid_forms_data = [form for form in formset.cleaned_data if not form.get('DELETE', False)]
+            csv_content, error_message = _generate_csv_string_from_formset(valid_forms_data)
             
             if error_message:
-                # Se houver erro na geração, retorna para o formulário com a mensagem
                 messages.error(request, error_message)
                 return render(request, 'analyzer/analysis_creator.html', {'criteria_formset': formset})
 
@@ -274,49 +284,21 @@ def analysis_creator_view(request):
                 return response
 
             elif action == 'analyze':
-                try:
-                    # Usa um arquivo temporário para a análise
-                    with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.csv', encoding='utf-8') as temp_file:
-                        temp_file.write(csv_content)
-                        temp_file_path = temp_file.name
-                    
-                    analyzer = DataAnalyzer(temp_file_path)
-                    analyzer.load_and_prepare_data()
-                    analyzer.calculate_scores()
-                    
-                    podium_data = analyzer.get_podium_details()
-                    visualizations = analyzer.generate_visualizations()
-                    
-                    context = {
-                        'podium_data': podium_data,
-                        'visualizations': visualizations,
-                        'has_results': True,
-                        'file_name': 'Análise customizada'
-                    }
-                    return render(request, 'analyzer/main.html', context)
-                
-                except Exception as e:
-                    messages.error(request, f"Erro durante a análise: {e}")
-                
-                finally:
-                    # Garante que o arquivo temporário seja deletado
-                    if 'temp_file_path' in locals() and os.path.exists(temp_file_path):
-                        os.remove(temp_file_path)
+                # ... (resto da lógica de análise permanece a mesma) ...
+        # Se o formset for inválido, ele será re-renderizado com os erros
+    else:
+        formset = CriterionFormSet(prefix='criteria')
 
-    # Se GET ou se o formset for inválido, renderiza a página de criação
-    formset = CriterionFormSet(prefix='criteria')
     return render(request, 'analyzer/analysis_creator.html', {'criteria_formset': formset})
 
 
-# ADICIONE ESTA NOVA FUNÇÃO AUXILIAR NO FINAL DO SEU `views.py`
+# SUBSTITUA A FUNÇÃO _generate_csv_string_from_formset
 def _generate_csv_string_from_formset(cleaned_data):
     """
-    Pega os dados limpos de um formset de critérios e retorna o conteúdo de um CSV como string.
+    Pega os dados limpos de um formset e retorna o conteúdo de um CSV como string.
     """
-    # Mapeamento de "estrelas" para pesos. Ajuste se necessário.
-    weight_map = {'1': 0.1, '2': 0.2, '3': 0.3, '4': 0.4, '5': 0.5}
-
     try:
+        # Inicializa as linhas do CSV
         header = ['Modelo']
         pesos = ['PESO']
         tipos = ['TIPO']
@@ -325,20 +307,17 @@ def _generate_csv_string_from_formset(cleaned_data):
         neutro_values = ['NEUTRO']
 
         for form_data in cleaned_data:
-            if not form_data: continue # Ignora formulários vazios
+            if not form_data: continue
             
             name = form_data.get('name')
             header.append(name)
             
-            # PESO
-            weight_stars = form_data.get('weight', '3') # Default de 3 estrelas
-            pesos.append(weight_map.get(weight_stars, 0.3))
+            # Usa o valor numérico direto do formulário
+            pesos.append(form_data.get('weight', 0))
             
-            # TIPO
             type_map = {'string': 'string', 'number': 'number', 'boolean': 'boolean'}
             tipos.append(type_map.get(form_data.get('criterion_type'), 'string'))
 
-            # FUNCAO, BOM, NEUTRO (apenas para tipo 'number')
             if form_data.get('criterion_type') == 'number':
                 funcoes.append(form_data.get('proportionality'))
                 bom_values.append(form_data.get('good_value'))
@@ -348,7 +327,6 @@ def _generate_csv_string_from_formset(cleaned_data):
                 bom_values.append('')
                 neutro_values.append('')
         
-        # Usa o módulo `io` e `csv` para montar a string de forma segura
         output = io.StringIO()
         writer = csv.writer(output)
         
@@ -359,7 +337,6 @@ def _generate_csv_string_from_formset(cleaned_data):
         writer.writerow(bom_values)
         writer.writerow(neutro_values)
 
-        # Retorna o conteúdo da string e nenhuma mensagem de erro
         return output.getvalue(), None
 
     except Exception as e:

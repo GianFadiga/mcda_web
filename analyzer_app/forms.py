@@ -93,9 +93,8 @@ class UserUpdateForm(forms.ModelForm):
             raise forms.ValidationError("Este nome de usuário já está em uso.")
         return username
 
-# ADICIONE A NOVA CLASSE DE FORMULÁRIO ABAIXO
+# SUBSTITUA A CLASSE CriterionForm INTEIRA POR ESTA
 class CriterionForm(forms.Form):
-    # Dicionários de escolhas para os dropdowns
     TYPE_CHOICES = [
         ('number', 'Numérico'),
         ('string', 'Texto'),
@@ -105,9 +104,7 @@ class CriterionForm(forms.Form):
         ('proportional', 'Quanto mais, melhor'),
         ('i_proportional', 'Quanto menos, melhor'),
     ]
-    WEIGHT_CHOICES = [(i, f'{i} Estrela{"s" if i > 1 else ""}') for i in range(1, 6)] # 1 a 5 estrelas
 
-    # Campos do formulário
     name = forms.CharField(
         label="Nome do Critério",
         max_length=100,
@@ -119,15 +116,22 @@ class CriterionForm(forms.Form):
         widget=forms.Select(attrs={'class': 'form-select'})
     )
     proportionality = forms.ChoiceField(
-        label="Preferência (para números)",
+        label="Preferência (p/ números)",
         choices=PROPORTIONALITY_CHOICES,
         widget=forms.Select(attrs={'class': 'form-select'}),
-        required=False # Opcional, pois só se aplica a números
+        required=False
     )
-    weight = forms.ChoiceField(
-        label="Importância",
-        choices=WEIGHT_CHOICES,
-        widget=forms.Select(attrs={'class': 'form-select'})
+    # CAMPO DE PESO ALTERADO AQUI
+    weight = forms.FloatField(
+        label="Importância (Peso)",
+        min_value=0.01,
+        max_value=1.0,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Ex: 0.25',
+            'step': '0.01'  # Define o incremento do campo no HTML
+        }),
+        validators=[MinValueValidator(0.01), MaxValueValidator(1.0)] # Validação no backend
     )
     good_value = forms.CharField(
         label="Valor Bom",
