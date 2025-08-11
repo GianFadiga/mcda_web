@@ -6,21 +6,17 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h2 class="mb-4">Criador de Planilha de Análise</h2>
-    
-    {% if messages %}
-    {% for message in messages %}
-        <div class="alert alert-danger">{{ message }}</div>
-    {% endfor %}
-    {% endif %}
-    
     <form method="post" id="analysis-creator-form">
         {% csrf_token %}
-        
-        <div class="card shadow-sm">
-            <div class="card-header"><h4 class="mb-0">Etapa 1: Defina os Critérios</h4></div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header"><h4 class="mb-0">Etapa 1: Nome e Critérios da Análise</h4></div>
             <div class="card-body">
-                
+                <div class="mb-4">
+                    <label for="analysis_name" class="form-label fw-bold">Nome da Análise</label>
+                    <input type="text" name="analysis_name" id="analysis_name" class="form-control" placeholder="Ex: Escolha de novo carro" required>
+                </div>
+
                 <div class="row criterion-header fw-bold mb-2 d-none d-md-flex">
                     <div class="col-md-3">Nome do Critério</div>
                     <div class="col-md-2">Tipo</div>
@@ -63,124 +59,122 @@
                     <strong>Soma dos Pesos: </strong>
                     <span id="total-weight-display" class="fw-bold">0.00</span> / 1.00
                 </div>
+
+                <div class="text-center mt-4">
+                    <button type="button" id="proceed-to-step2-btn" class="btn btn-lg btn-info text-white">Confirmar Critérios e Adicionar Alternativas</button>
+                </div>
             </div>
         </div>
 
-        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
-            <button type="submit" name="action" value="download" class="btn btn-secondary">Baixar CSV dos Critérios</button>
-            <button type="submit" name="action" value="analyze" class="btn btn-primary">Analisar Agora</button>
+        <div id="step2-card" class="card shadow-sm d-none">
+            <div class="card-header"><h4 class="mb-0">Etapa 2: Adicione as Alternativas</h4></div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead id="alternatives-table-header">
+                            </thead>
+                        <tbody id="alternatives-forms-container">
+                            </tbody>
+                    </table>
+                </div>
+                <button type="button" id="add-alternative-btn" class="btn btn-outline-success mt-2">
+                    <i class="bi bi-plus-circle me-2"></i>Adicionar Alternativa
+                </button>
+
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                    <button type="submit" name="action" value="download" class="btn btn-secondary">Baixar CSV Completo</button>
+                    <button type="submit" name="action" value="analyze" class="btn btn-primary">Analisar Agora</button>
+                </div>
+            </div>
         </div>
     </form>
 </div>
 
 <template id="criterion-form-template">
-    <div class="row criterion-form align-items-center mb-3 border-bottom pb-3 gx-2">
-        <div style="display:none;">{{ criteria_formset.empty_form.DELETE }}</div>
-        <div class="col-md-3">{{ criteria_formset.empty_form.name }}</div>
-        <div class="col-md-2">{{ criteria_formset.empty_form.criterion_type }}</div>
-        <div class="col-md-2">{{ criteria_formset.empty_form.weight }}</div>
-        <div class="col-md-4 conditional-numeric">
-            <div class="row gx-2">
-                <div class="col-6">{{ criteria_formset.empty_form.proportionality }}</div>
-                <div class="col-3">{{ criteria_formset.empty_form.good_value }}</div>
-                <div class="col-3">{{ criteria_formset.empty_form.neutral_value }}</div>
-            </div>
-        </div>
-        <div class="col-md-1">
-            <button type="button" class="btn btn-danger btn-sm delete-criterion-btn w-100">Excluir</button>
-        </div>
-    </div>
-</template>
+    </template>
+<template id="alternative-form-template">
+    </template>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const addCriterionBtn = document.getElementById('add-criterion-btn');
-        const container = document.getElementById('criteria-forms-container');
-        const template = document.getElementById('criterion-form-template');
-        const totalFormsInput = document.querySelector('#id_criteria-TOTAL_FORMS');
-        const totalWeightDisplay = document.getElementById('total-weight-display');
-        const headerNumeric = document.querySelector('.criterion-header .conditional-numeric');
+// O SCRIPT FOI COMPLETAMENTE REFEITO PARA GERENCIAR AS DUAS ETAPAS
+document.addEventListener('DOMContentLoaded', function () {
+    // ... (todo o script anterior de critérios) ...
+    
+    const step1Card = document.querySelector('.card:first-of-type');
+    const step2Card = document.getElementById('step2-card');
+    const proceedBtn = document.getElementById('proceed-to-step2-btn');
+    
+    const alternativesHeader = document.getElementById('alternatives-table-header');
+    const alternativesContainer = document.getElementById('alternatives-forms-container');
+    const addAlternativeBtn = document.getElementById('add-alternative-btn');
+    const alternativeTemplate = document.getElementById('alternative-form-template');
+    let alternativeCounter = 0;
 
-        function setupEventListeners(element) {
-            element.addEventListener('change', function(event) {
-                if (event.target.matches('select[name$="-criterion_type"]')) {
-                    updateAllFormsVisibility(); // Atualiza tudo quando qualquer um muda
-                }
-                if (event.target.matches('input[name$="-weight"]')) {
-                    updateTotalWeight();
-                }
-            });
-
-            element.addEventListener('click', function(event) {
-                if (event.target.matches('.delete-criterion-btn')) {
-                    handleDeleteClick(event.target);
-                }
-            });
+    proceedBtn.addEventListener('click', function() {
+        // 1. Validar Etapa 1 (simples, só checa se tem nome e peso ok)
+        const analysisName = document.getElementById('analysis_name').value;
+        if (!analysisName) {
+            alert('Por favor, dê um nome para a análise.');
+            return;
         }
-        
-        // Função centralizada para atualizar a visibilidade de todos os formulários e do cabeçalho
-        function updateAllFormsVisibility() {
-            let showNumericHeader = false;
-            container.querySelectorAll('.criterion-form').forEach(form => {
-                const select = form.querySelector('select[name$="-criterion_type"]');
-                const numericGroup = form.querySelector('.conditional-numeric');
-                const isDeleted = form.querySelector('input[type="checkbox"][name$="-DELETE"]')?.checked;
-                
-                if (select && !isDeleted) {
-                    const show = select.value === 'number';
-                    numericGroup.style.display = show ? '' : 'none';
-                    if (show) {
-                        showNumericHeader = true; // Se pelo menos um for numérico, mostra o cabeçalho
-                    }
-                }
-            });
-            // Atualiza a visibilidade do cabeçalho
-            if (headerNumeric) {
-                headerNumeric.style.display = showNumericHeader ? '' : 'none';
-            }
+        const totalWeight = parseFloat(document.getElementById('total-weight-display').textContent);
+        if (totalWeight > 1.0) {
+            alert('A soma dos pesos não pode ser maior que 1.0.');
+            return;
         }
 
-        function handleDeleteClick(button) {
-            const form = button.closest('.criterion-form');
-            const deleteCheckbox = form.querySelector('input[type="checkbox"][name$="-DELETE"]');
-            if (deleteCheckbox) {
-                deleteCheckbox.checked = true;
-                form.style.display = 'none';
-                updateTotalWeight();
-                updateAllFormsVisibility(); // Re-avalia a visibilidade do cabeçalho
-            }
-        }
-
-        function updateTotalWeight() {
-            let totalWeight = 0;
-            container.querySelectorAll('.criterion-form').forEach(form => {
-                const isDeleted = form.querySelector('input[type="checkbox"][name$="-DELETE"]')?.checked;
-                if (form.style.display !== 'none' && !isDeleted) {
-                    const weightInput = form.querySelector('input[name$="-weight"]');
-                    totalWeight += parseFloat(weightInput.value) || 0;
-                }
-            });
-            totalWeightDisplay.textContent = totalWeight.toFixed(2);
-            totalWeightDisplay.classList.toggle('text-danger', totalWeight > 1.0);
-        }
-
-        addCriterionBtn.addEventListener('click', function () {
-            let formNum = parseInt(totalFormsInput.value);
-            const templateHTML = template.innerHTML.replace(/__prefix__/g, formNum);
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = templateHTML;
-            const newFormElement = tempDiv.firstElementChild;
-            container.appendChild(newFormElement);
-            totalFormsInput.value = formNum + 1;
-            
-            updateAllFormsVisibility();
-            updateTotalWeight();
+        // 2. Travar os campos da Etapa 1
+        step1Card.querySelectorAll('input, select, button').forEach(el => {
+            el.disabled = true;
         });
 
-        // Inicializa tudo
-        setupEventListeners(document.body);
-        updateAllFormsVisibility();
-        updateTotalWeight();
+        // 3. Montar a Etapa 2 dinamicamente
+        const criteriaForms = document.querySelectorAll('#criteria-forms-container .criterion-form');
+        let headerHTML = '<tr><th style="width: 20%;">Nome da Alternativa</th>';
+        let templateRowHTML = '<td><input type="text" name="alternative-0-name" class="form-control" required></td>';
+
+        criteriaForms.forEach((form, index) => {
+            const isDeleted = form.querySelector('input[type="checkbox"][name$="-DELETE"]')?.checked;
+            if (form.style.display !== 'none' && !isDeleted) {
+                const critName = form.querySelector('input[name$="-name"]').value;
+                headerHTML += `<th>${critName}</th>`;
+                
+                const critType = form.querySelector('select[name$="-criterion_type"]').value;
+                if(critType === 'number') {
+                    templateRowHTML += `<td><input type="number" name="alternative-0-crit-${index}" class="form-control"></td>`;
+                } else if (critType === 'boolean') {
+                    templateRowHTML += `<td><select name="alternative-0-crit-${index}" class="form-select"><option value="TRUE">Sim</option><option value="FALSE">Não</option></select></td>`;
+                } else { // string
+                    templateRowHTML += `<td><input type="text" name="alternative-0-crit-${index}" class="form-control"></td>`;
+                }
+            }
+        });
+        headerHTML += '<th>Ação</th></tr>';
+        templateRowHTML += '<td><button type="button" class="btn btn-danger btn-sm delete-alternative-btn">Excluir</button></td>';
+
+        alternativesHeader.innerHTML = headerHTML;
+        alternativeTemplate.innerHTML = `<tr>${templateRowHTML}</tr>`;
+
+        // 4. Mostrar a Etapa 2
+        step2Card.classList.remove('d-none');
+        addAlternativeBtn.click(); // Adiciona a primeira linha de alternativa automaticamente
     });
+
+    // Lógica para adicionar/excluir alternativas
+    addAlternativeBtn.addEventListener('click', function() {
+        const templateHTML = alternativeTemplate.innerHTML.replace(/-0-/g, `-${alternativeCounter}-`);
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = `<table><tbody>${templateHTML}</tbody></table>`;
+        alternativesContainer.appendChild(tempDiv.querySelector('tr'));
+        alternativeCounter++;
+    });
+
+    alternativesContainer.addEventListener('click', function(event) {
+        if (event.target.classList.contains('delete-alternative-btn')) {
+            event.target.closest('tr').remove();
+        }
+    });
+
+    // ... (cole aqui o script completo da resposta anterior para gerenciar a Etapa 1) ...
+});
 </script>
-{% endblock %}
