@@ -61,6 +61,14 @@
                 <button type="button" id="add-criterion-btn" class="btn btn-outline-success mt-2">
                     <i class="bi bi-plus-circle me-2"></i>Adicionar Critério
                 </button>
+                <button type="button" id="add-criterion-btn" class="btn btn-outline-success mt-2">
+                    <i class="bi bi-plus-circle me-2"></i>Adicionar Critério
+                </button>
+
+                <div class="mt-3 text-end">
+                    <strong>Soma dos Pesos: </strong>
+                    <span id="total-weight-display" class="fw-bold">0.00</span> / 1.00
+                </div>
             </div>
         </div>
 
@@ -113,8 +121,64 @@ document.addEventListener('DOMContentLoaded', function () {
     const container = document.getElementById('criteria-forms-container');
     const template = document.getElementById('criterion-form-template');
     const totalFormsInput = document.querySelector('#id_criteria-TOTAL_FORMS');
+    const totalWeightDisplay = document.getElementById('total-weight-display');
 
-    // --- LÓGICA PARA ADICIONAR NOVOS FORMULÁRIOS ---
+    function updateEventListeners() {
+        // Lógica de mostrar/esconder campos numéricos
+        document.querySelectorAll('select[name$="-criterion_type"]').forEach(select => {
+            select.removeEventListener('change', handleTypeChange); // Evita duplicar listeners
+            select.addEventListener('change', handleTypeChange);
+        });
+
+        // Lógica do botão de excluir
+        document.querySelectorAll('.delete-criterion-btn').forEach(btn => {
+            btn.removeEventListener('click', handleDeleteClick);
+            btn.addEventListener('click', handleDeleteClick);
+        });
+
+        // Lógica para atualizar a soma dos pesos
+        document.querySelectorAll('input[name$="-weight"]').forEach(input => {
+            input.removeEventListener('input', updateTotalWeight);
+            input.addEventListener('input', updateTotalWeight);
+        });
+    }
+
+    function handleTypeChange(event) {
+        const form = event.target.closest('.criterion-form');
+        const numericFields = form.querySelectorAll('.conditional-numeric');
+        const show = event.target.value === 'number';
+        numericFields.forEach(field => field.style.display = show ? 'block' : 'none');
+    }
+
+    function handleDeleteClick(event) {
+        const form = event.target.closest('.criterion-form');
+        const deleteCheckbox = form.querySelector('input[type="checkbox"][name$="-DELETE"]');
+        if (deleteCheckbox) {
+            deleteCheckbox.checked = true;
+            form.style.display = 'none';
+            updateTotalWeight(); // Recalcula o peso ao excluir
+        }
+    }
+
+    function updateTotalWeight() {
+        let totalWeight = 0;
+        document.querySelectorAll('.criterion-form').forEach(form => {
+            const isDeleted = form.querySelector('input[type="checkbox"][name$="-DELETE"]')?.checked;
+            if (form.style.display !== 'none' && !isDeleted) {
+                const weightInput = form.querySelector('input[name$="-weight"]');
+                const weightValue = parseFloat(weightInput.value) || 0;
+                totalWeight += weightValue;
+            }
+        });
+
+        totalWeightDisplay.textContent = totalWeight.toFixed(2);
+        if (totalWeight > 1.0) {
+            totalWeightDisplay.classList.add('text-danger');
+        } else {
+            totalWeightDisplay.classList.remove('text-danger');
+        }
+    }
+
     addCriterionBtn.addEventListener('click', function () {
         let formNum = parseInt(totalFormsInput.value);
         const templateHTML = template.innerHTML.replace(/__prefix__/g, formNum);
@@ -123,36 +187,16 @@ document.addEventListener('DOMContentLoaded', function () {
         const newFormElement = tempDiv.firstElementChild;
         container.appendChild(newFormElement);
         totalFormsInput.value = formNum + 1;
-        updateFormVisibility();
+
+        // Dispara os eventos para o novo formulário
+        newFormElement.querySelector('select[name$="-criterion_type"]').dispatchEvent(new Event('change'));
+        updateEventListeners();
+        updateTotalWeight();
     });
 
-    // --- LÓGICA PARA EXCLUIR E MOSTRAR/ESCONDER CAMPOS ---
-    function updateFormVisibility() {
-        document.querySelectorAll('.criterion-form').forEach(form => {
-            // Lógica de mostrar/esconder campos numéricos
-            const typeSelect = form.querySelector('select[name$="-criterion_type"]');
-            const numericFields = form.querySelectorAll('.conditional-numeric');
-            const toggleNumericFields = () => {
-                const show = typeSelect.value === 'number';
-                numericFields.forEach(field => field.style.display = show ? 'block' : 'none');
-            };
-            toggleNumericFields();
-            typeSelect.addEventListener('change', toggleNumericFields);
-
-            // Lógica do botão de excluir
-            const deleteBtn = form.querySelector('.delete-criterion-btn');
-            const deleteCheckbox = form.querySelector('input[type="checkbox"][name$="-DELETE"]');
-            if (deleteBtn && deleteCheckbox) {
-                deleteBtn.addEventListener('click', function () {
-                    // Marca o checkbox para exclusão no backend e esconde o formulário
-                    deleteCheckbox.checked = true;
-                    form.style.display = 'none';
-                });
-            }
-        });
-    }
-
-    updateFormVisibility();
+    // Inicializa tudo
+    updateEventListeners();
+    updateTotalWeight();
 });
 </script>
 {% endblock %}

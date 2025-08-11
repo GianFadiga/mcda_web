@@ -321,13 +321,13 @@ def analysis_creator_view(request):
     return render(request, 'analyzer/analysis_creator.html', {'criteria_formset': formset})
 
 
-# SUBSTITUA A FUNÇÃO _generate_csv_string_from_formset
+# SUBSTITUA A FUNÇÃO INTEIRA por esta versão corrigida
 def _generate_csv_string_from_formset(cleaned_data):
     """
-    Pega os dados limpos de um formset e retorna o conteúdo de um CSV como string.
+    Pega os dados limpos de um formset de critérios e retorna o conteúdo de um CSV como string.
     """
     try:
-        # Inicializa as linhas do CSV
+        # Inicializa as listas de dados para cada linha de configuração
         header = ['Modelo']
         pesos = ['PESO']
         tipos = ['TIPO']
@@ -341,7 +341,6 @@ def _generate_csv_string_from_formset(cleaned_data):
             name = form_data.get('name')
             header.append(name)
             
-            # Usa o valor numérico direto do formulário
             pesos.append(form_data.get('weight', 0))
             
             type_map = {'string': 'string', 'number': 'number', 'boolean': 'boolean'}
@@ -356,9 +355,11 @@ def _generate_csv_string_from_formset(cleaned_data):
                 bom_values.append('')
                 neutro_values.append('')
         
+        # Usa o módulo `io` e `csv` para montar a string de forma segura
         output = io.StringIO()
         writer = csv.writer(output)
         
+        # Escreve as listas como linhas separadas
         writer.writerow(header)
         writer.writerow(pesos)
         writer.writerow(tipos)
