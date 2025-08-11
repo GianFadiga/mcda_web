@@ -246,32 +246,121 @@ def profile_view(request):
         'change_password': 'change_password' in request.POST,
     })
     
-# ADICIONE A NOVA VIEW ABAIXO
+# SUBSTITUA A VIEW analysis_creator_view INTEIRA POR ESTA
 @login_required
 def analysis_creator_view(request):
     """
     View para a página de criação de análises (planilhas).
     """
-    # Cria uma 'fábrica' de formsets a partir do nosso CriterionForm
-    # extra=1 significa que sempre começaremos com 1 formulário em branco
     CriterionFormSet = formset_factory(CriterionForm, extra=1)
 
     if request.method == 'POST':
-        # Se o formulário for enviado, preenche o formset com os dados
         formset = CriterionFormSet(request.POST, prefix='criteria')
         if formset.is_valid():
-            # Por enquanto, vamos apenas confirmar que recebemos os dados
-            print("Formset válido!")
-            print(formset.cleaned_data)
             
-            # NO PRÓXIMO PASSO, A LÓGICA DE ANALISAR/BAIXAR ENTRARÁ AQUI
-            return HttpResponse("Formulário enviado com sucesso! Verifique o console do servidor.")
-        # Se o formset for inválido, ele será re-renderizado com os erros
-    else:
-        # Se for a primeira vez na página (GET), cria um formset em branco
-        formset = CriterionFormSet(prefix='criteria')
+            # Chama a nova função para gerar o conteúdo do CSV
+            csv_content, error_message = _generate_csv_string_from_formset(formset.cleaned_data)
+            
+            if error_message:
+                # Se houver erro na geração, retorna para o formulário com a mensagem
+                messages.error(request, error_message)
+                return render(request, 'analyzer/analysis_creator.html', {'criteria_formset': formset})
 
-    context = {
-        'criteria_formset': formset
-    }
-    return render(request, 'analyzer/analysis_creator.html', context)
+            action = request.POST.get('action')
+
+            if action == 'download':
+                response = HttpResponse(csv_content, content_type='text/csv')
+                response['Content-Disposition'] = 'attachment; filename="analise_customizada.csv"'
+                return response
+
+            elif action == 'analyze':
+                try:
+                    # Usa um arquivo temporário para a análise
+                    with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.csv', encoding='utf-8') as temp_file:
+                        temp_file.write(csv_content)
+                        temp_file_path = temp_file.name
+                    
+                    analyzer = DataAnalyzer(temp_file_path)
+                    analyzer.load_and_prepare_data()
+                    analyzer.calculate_scores()
+                    
+                    podium_data = analyzer.get_podium_details()
+                    visualizations = analyzer.generate_visualizations()
+                    
+                    context = {
+                        'podium_data': podium_data,
+                        'visualizations': visualizations,
+                        'has_results': True,
+                        'file_name': 'Análise customizada'
+                    }
+                    return render(request, 'analyzer/main.html', context)
+                
+                except Exception as e:
+                    messages.error(request, f"Erro durante a análise: {e}")
+                
+                finally:
+                    # Garante que o arquivo temporário seja deletado
+                    if 'temp_file_path' in locals() and os.path.exists(temp_file_path):
+                        os.remove(temp_file_path)
+
+    # Se GET ou se o formset for inválido, renderiza a página de criação
+    formset = CriterionFormSet(prefix='criteria')
+    return render(request, 'analyzer/analysis_creator.html', {'criteria_formset': formset})
+
+
+# ADICIONE ESTA NOVA FUNÇÃO AUXILIAR NO FINAL DO SEU `views.py`
+def _generate_csv_string_from_formset(cleaned_data):
+    """
+    Pega os dados limpos de um formset de critérios e retorna o conteúdo de um CSV como string.
+    """
+    # Mapeamento de "estrelas" para pesos. Ajuste se necessário.
+    weight_map = {'1': 0.1, '2': 0.2, '3': 0.3, '4': 0.4, '5': 0.5}
+
+    try:
+        header = ['Modelo']
+        pesos = ['PESO']
+        tipos = ['TIPO']
+        funcoes = ['FUNCAO']
+        bom_values = ['BOM']
+        neutro_values = ['NEUTRO']
+
+        for form_data in cleaned_data:
+            if not form_data: continue # Ignora formulários vazios
+            
+            name = form_data.get('name')
+            header.append(name)
+            
+            # PESO
+            weight_stars = form_data.get('weight', '3') # Default de 3 estrelas
+            pesos.append(weight_map.get(weight_stars, 0.3))
+            
+            # TIPO
+            type_map = {'string': 'string', 'number': 'number', 'boolean': 'boolean'}
+            tipos.append(type_map.get(form_data.get('criterion_type'), 'string'))
+
+            # FUNCAO, BOM, NEUTRO (apenas para tipo 'number')
+            if form_data.get('criterion_type') == 'number':
+                funcoes.append(form_data.get('proportionality'))
+                bom_values.append(form_data.get('good_value'))
+                neutro_values.append(form_data.get('neutral_value'))
+            else:
+                funcoes.append('')
+                bom_values.append('')
+                neutro_values.append('')
+        
+        # Usa o módulo `io` e `csv` para montar a string de forma segura
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        writer.writerow(header)
+        writer.writerow(pesos)
+        writer.writerow(tipos)
+        writer.writerow(funcoes)
+        writer.writerow(bom_values)
+        writer.writerow(neutro_values)
+
+        # Retorna o conteúdo da string e nenhuma mensagem de erro
+        return output.getvalue(), None
+
+    except Exception as e:
+        return None, f"Erro ao gerar o CSV a partir dos dados do formulário: {e}"

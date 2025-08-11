@@ -108,48 +108,55 @@ document.addEventListener('DOMContentLoaded', function () {
     const container = document.getElementById('criteria-forms-container');
     const template = document.getElementById('criterion-form-template');
     const totalFormsInput = document.querySelector('#id_criteria-TOTAL_FORMS');
-    let formNum = {{ criteria_formset.total_form_count }};
-
-    // --- LÓGICA PARA ADICIONAR NOVOS FORMULÁRIOS ---
+    
+    // --- LÓGICA PARA ADICIONAR NOVOS FORMULÁRIOS (CORRIGIDA) ---
     addCriterionBtn.addEventListener('click', function () {
-        // Clona o template
-        const newForm = template.content.cloneNode(true);
-        // Atualiza os prefixos dos inputs
-        const formRegex = /criteria-__prefix__/g;
-        newForm.innerHTML = newForm.innerHTML.replace(formRegex, `criteria-${formNum}`);
-        
-        // Converte o fragmento clonado em um elemento real antes de adicionar
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = newForm.innerHTML;
-        container.appendChild(tempDiv.firstElementChild);
-        
-        // Atualiza o número total de formulários no management_form
-        totalFormsInput.value = ++formNum;
+        // Pega o número atual de formulários
+        let formNum = parseInt(totalFormsInput.value);
 
-        // Re-aplica a lógica de visibilidade para o novo formulário
+        // Pega o conteúdo do template como uma string de texto
+        const templateHTML = template.innerHTML;
+        
+        // Substitui o prefixo de placeholder pelo número do novo formulário
+        const newFormHTML = templateHTML.replace(/__prefix__/g, formNum);
+        
+        // Cria um elemento temporário para inserir o novo HTML
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = newFormHTML;
+        
+        // Pega o elemento de formulário real de dentro do div temporário e o adiciona ao container
+        const newFormElement = tempDiv.firstElementChild;
+        container.appendChild(newFormElement);
+        
+        // Incrementa o número total de formulários no campo de gerenciamento
+        totalFormsInput.value = formNum + 1;
+
+        // Re-aplica a lógica de visibilidade para todos os formulários, incluindo o novo
         updateFormVisibility();
     });
 
     // --- LÓGICA PARA MOSTRAR/ESCONDER CAMPOS NUMÉRICOS ---
     function updateFormVisibility() {
-        document.querySelectorAll('.criterion-form').forEach(form => {
-            const typeSelect = form.querySelector('select[name$="-criterion_type"]');
-            const numericFields = form.querySelectorAll('.conditional-numeric');
-            
-            function toggleNumericFields() {
-                if (typeSelect.value === 'number') {
+        // Usa 'delegation' para garantir que mesmo novos formulários funcionem
+        document.body.addEventListener('change', function(event) {
+            if (event.target.matches('select[name$="-criterion_type"]')) {
+                const form = event.target.closest('.criterion-form');
+                const numericFields = form.querySelectorAll('.conditional-numeric');
+                
+                if (event.target.value === 'number') {
                     numericFields.forEach(field => field.style.display = 'block');
                 } else {
                     numericFields.forEach(field => field.style.display = 'none');
                 }
             }
-            // Executa na inicialização e a cada mudança
-            toggleNumericFields();
-            typeSelect.addEventListener('change', toggleNumericFields);
+        });
+
+        // Executa uma vez no início para os formulários existentes
+        document.querySelectorAll('select[name$="-criterion_type"]').forEach(select => {
+            select.dispatchEvent(new Event('change'));
         });
     }
 
-    // Aplica a lógica de visibilidade aos formulários iniciais
     updateFormVisibility();
 });
 </script>
