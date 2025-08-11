@@ -23,34 +23,16 @@
                 {{ criteria_formset.management_form }}
                 <div id="criteria-forms-container">
                     {% for form in criteria_formset %}
-                    <div class="row criterion-form align-items-end mb-3 border-bottom pb-3">
+                    <div class="row criterion-form align-items-center mb-3 border-bottom pb-3 gx-2">
                         <div style="display:none;">{{ form.DELETE }}</div>
-                        <div class="col-md-3">
-                            <label class="form-label">{{ form.name.label }}</label>
-                            {{ form.name }}
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">{{ form.criterion_type.label }}</label>
-                            {{ form.criterion_type }}
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">{{ form.weight.label }}</label>
-                            {{ form.weight }}
-                        </div>
+                        <div class="col-md-3">{{ form.name }}</div>
+                        <div class="col-md-2">{{ form.criterion_type }}</div>
+                        <div class="col-md-2">{{ form.weight }}</div>
                         <div class="col-md-4 conditional-numeric">
-                            <div class="row">
-                                <div class="col-6">
-                                    <label class="form-label">{{ form.proportionality.label }}</label>
-                                    {{ form.proportionality }}
-                                </div>
-                                <div class="col-3">
-                                    <label class="form-label">{{ form.good_value.label }}</label>
-                                    {{ form.good_value }}
-                                </div>
-                                <div class="col-3">
-                                    <label class="form-label">{{ form.neutral_value.label }}</label>
-                                    {{ form.neutral_value }}
-                                </div>
+                            <div class="row gx-2">
+                                <div class="col-6">{{ form.proportionality }}</div>
+                                <div class="col-3">{{ form.good_value }}</div>
+                                <div class="col-3">{{ form.neutral_value }}</div>
                             </div>
                         </div>
                         <div class="col-md-1">
@@ -77,34 +59,16 @@
 </div>
 
 <template id="criterion-form-template">
-    <div class="row criterion-form align-items-end mb-3 border-bottom pb-3">
+    <div class="row criterion-form align-items-center mb-3 border-bottom pb-3 gx-2">
         <div style="display:none;">{{ criteria_formset.empty_form.DELETE }}</div>
-        <div class="col-md-3">
-            <label class="form-label">{{ criteria_formset.empty_form.name.label }}</label>
-            {{ criteria_formset.empty_form.name }}
-        </div>
-        <div class="col-md-2">
-            <label class="form-label">{{ criteria_formset.empty_form.criterion_type.label }}</label>
-            {{ criteria_formset.empty_form.criterion_type }}
-        </div>
-        <div class="col-md-2">
-            <label class="form-label">{{ criteria_formset.empty_form.weight.label }}</label>
-            {{ criteria_formset.empty_form.weight }}
-        </div>
+        <div class="col-md-3">{{ criteria_formset.empty_form.name }}</div>
+        <div class="col-md-2">{{ criteria_formset.empty_form.criterion_type }}</div>
+        <div class="col-md-2">{{ criteria_formset.empty_form.weight }}</div>
         <div class="col-md-4 conditional-numeric">
-            <div class="row">
-                <div class="col-6">
-                    <label class="form-label">{{ criteria_formset.empty_form.proportionality.label }}</label>
-                    {{ criteria_formset.empty_form.proportionality }}
-                </div>
-                <div class="col-3">
-                    <label class="form-label">{{ criteria_formset.empty_form.good_value.label }}</label>
-                    {{ criteria_formset.empty_form.good_value }}
-                </div>
-                <div class="col-3">
-                    <label class="form-label">{{ criteria_formset.empty_form.neutral_value.label }}</label>
-                    {{ criteria_formset.empty_form.neutral_value }}
-                </div>
+            <div class="row gx-2">
+                <div class="col-6">{{ criteria_formset.empty_form.proportionality }}</div>
+                <div class="col-3">{{ criteria_formset.empty_form.good_value }}</div>
+                <div class="col-3">{{ criteria_formset.empty_form.neutral_value }}</div>
             </div>
         </div>
         <div class="col-md-1">
@@ -114,7 +78,6 @@
 </template>
 
 <script>
-    // SCRIPT ATUALIZADO PARA O NOVO LAYOUT
     document.addEventListener('DOMContentLoaded', function () {
         const addCriterionBtn = document.getElementById('add-criterion-btn');
         const container = document.getElementById('criteria-forms-container');
@@ -123,7 +86,6 @@
         const totalWeightDisplay = document.getElementById('total-weight-display');
 
         function setupEventListeners(element) {
-            // Delegação de eventos a partir do container principal
             element.addEventListener('change', function(event) {
                 if (event.target.matches('select[name$="-criterion_type"]')) {
                     handleTypeChange(event.target);
@@ -144,7 +106,8 @@
             const form = selectElement.closest('.criterion-form');
             const numericGroup = form.querySelector('.conditional-numeric');
             const show = selectElement.value === 'number';
-            numericGroup.style.display = show ? 'block' : 'none';
+            // Em vez de 'block', usamos 'flex' para o display do grupo numérico se ele for um .row
+            numericGroup.style.display = show ? '' : 'none';
         }
 
         function handleDeleteClick(button) {
@@ -179,14 +142,12 @@
             container.appendChild(newFormElement);
             totalFormsInput.value = formNum + 1;
             
-            // Força a atualização da visibilidade do novo formulário
             handleTypeChange(newFormElement.querySelector('select[name$="-criterion_type"]'));
             updateTotalWeight();
         });
 
-        // Inicializa para os formulários já existentes na página
-        setupEventListeners(container);
-        container.querySelectorAll('select[name$="-criterion_type"]').forEach(handleTypeChange);
+        setupEventListeners(document.body); // Usar document.body para garantir que tudo seja capturado
+        container.querySelectorAll('select[name$="-criterion_type"]').forEach(select => handleTypeChange(select));
         updateTotalWeight();
     });
 </script>
