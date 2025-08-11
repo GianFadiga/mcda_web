@@ -1,0 +1,156 @@
+{% extends 'analyzer/base.html' %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block title %}Criador de Análise{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Criador de Planilha de Análise</h2>
+    <p>Use o formulário abaixo para definir os critérios da sua análise. Clique em "Adicionar Critério" para inserir novas linhas.</p>
+    
+    <form method="post" id="analysis-creator-form">
+        {% csrf_token %}
+        
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h4 class="mb-0">Etapa 1: Defina os Critérios</h4>
+            </div>
+            <div class="card-body">
+                {{ criteria_formset.management_form }}
+                <div id="criteria-forms-container">
+                    {% for form in criteria_formset %}
+                    <div class="row criterion-form mb-3 border-bottom pb-3">
+                        <div class="col-md-3">
+                            <label class="form-label">{{ form.name.label }}</label>
+                            {{ form.name }}
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">{{ form.criterion_type.label }}</label>
+                            {{ form.criterion_type }}
+                        </div>
+                        <div class="col-md-2 conditional-numeric">
+                            <label class="form-label">{{ form.proportionality.label }}</label>
+                            {{ form.proportionality }}
+                        </div>
+                         <div class="col-md-2">
+                            <label class="form-label">{{ form.weight.label }}</label>
+                            {{ form.weight }}
+                        </div>
+                        <div class="col-md-3">
+                            <div class="row">
+                                <div class="col-6 conditional-numeric">
+                                    <label class="form-label">{{ form.good_value.label }}</label>
+                                    {{ form.good_value }}
+                                </div>
+                                <div class="col-6 conditional-numeric">
+                                    <label class="form-label">{{ form.neutral_value.label }}</label>
+                                    {{ form.neutral_value }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <button type="button" id="add-criterion-btn" class="btn btn-outline-success mt-2">
+                    <i class="bi bi-plus-circle me-2"></i>Adicionar Critério
+                </button>
+            </div>
+        </div>
+
+        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+            <button type="submit" name="action" value="download" class="btn btn-secondary">
+                <i class="bi bi-download me-2"></i>Baixar CSV
+            </button>
+            <button type="submit" name="action" value="analyze" class="btn btn-primary">
+                <i class="bi bi-bar-chart-line-fill me-2"></i>Analisar Agora
+            </button>
+        </div>
+    </form>
+</div>
+
+<template id="criterion-form-template">
+    <div class="row criterion-form mb-3 border-bottom pb-3">
+        <div class="col-md-3">
+            <label class="form-label">{{ criteria_formset.empty_form.name.label }}</label>
+            {{ criteria_formset.empty_form.name }}
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">{{ criteria_formset.empty_form.criterion_type.label }}</label>
+            {{ criteria_formset.empty_form.criterion_type }}
+        </div>
+        <div class="col-md-2 conditional-numeric">
+            <label class="form-label">{{ criteria_formset.empty_form.proportionality.label }}</label>
+            {{ criteria_formset.empty_form.proportionality }}
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">{{ criteria_formset.empty_form.weight.label }}</label>
+            {{ criteria_formset.empty_form.weight }}
+        </div>
+        <div class="col-md-3">
+            <div class="row">
+                <div class="col-6 conditional-numeric">
+                    <label class="form-label">{{ criteria_formset.empty_form.good_value.label }}</label>
+                    {{ criteria_formset.empty_form.good_value }}
+                </div>
+                <div class="col-6 conditional-numeric">
+                    <label class="form-label">{{ criteria_formset.empty_form.neutral_value.label }}</label>
+                    {{ criteria_formset.empty_form.neutral_value }}
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const addCriterionBtn = document.getElementById('add-criterion-btn');
+    const container = document.getElementById('criteria-forms-container');
+    const template = document.getElementById('criterion-form-template');
+    const totalFormsInput = document.querySelector('#id_criteria-TOTAL_FORMS');
+    let formNum = {{ criteria_formset.total_form_count }};
+
+    // --- LÓGICA PARA ADICIONAR NOVOS FORMULÁRIOS ---
+    addCriterionBtn.addEventListener('click', function () {
+        // Clona o template
+        const newForm = template.content.cloneNode(true);
+        // Atualiza os prefixos dos inputs
+        const formRegex = /criteria-__prefix__/g;
+        newForm.innerHTML = newForm.innerHTML.replace(formRegex, `criteria-${formNum}`);
+        
+        // Converte o fragmento clonado em um elemento real antes de adicionar
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = newForm.innerHTML;
+        container.appendChild(tempDiv.firstElementChild);
+        
+        // Atualiza o número total de formulários no management_form
+        totalFormsInput.value = ++formNum;
+
+        // Re-aplica a lógica de visibilidade para o novo formulário
+        updateFormVisibility();
+    });
+
+    // --- LÓGICA PARA MOSTRAR/ESCONDER CAMPOS NUMÉRICOS ---
+    function updateFormVisibility() {
+        document.querySelectorAll('.criterion-form').forEach(form => {
+            const typeSelect = form.querySelector('select[name$="-criterion_type"]');
+            const numericFields = form.querySelectorAll('.conditional-numeric');
+            
+            function toggleNumericFields() {
+                if (typeSelect.value === 'number') {
+                    numericFields.forEach(field => field.style.display = 'block');
+                } else {
+                    numericFields.forEach(field => field.style.display = 'none');
+                }
+            }
+            // Executa na inicialização e a cada mudança
+            toggleNumericFields();
+            typeSelect.addEventListener('change', toggleNumericFields);
+        });
+    }
+
+    // Aplica a lógica de visibilidade aos formulários iniciais
+    updateFormVisibility();
+});
+</script>
+{% endblock %}

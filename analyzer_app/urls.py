@@ -12,4 +12,5 @@ urlpatterns = [
     path('upload_form_root/', views.upload_and_analyze, name='upload_form_root'),
     path('user_logs/', user_logs_view, name='user_logs'),
     path('analysis_logs/', analysis_logs_view, name='analysis_logs'),
+    path('creator/', views.analysis_creator_view, name='analysis_creator'),
 ]

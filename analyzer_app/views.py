@@ -242,3 +242,33 @@ def profile_view(request):
         'password_form': password_form,
         'change_password': 'change_password' in request.POST,
     })
+    
+# ADICIONE A NOVA VIEW ABAIXO
+@login_required
+def analysis_creator_view(request):
+    """
+    View para a página de criação de análises (planilhas).
+    """
+    # Cria uma 'fábrica' de formsets a partir do nosso CriterionForm
+    # extra=1 significa que sempre começaremos com 1 formulário em branco
+    CriterionFormSet = formset_factory(CriterionForm, extra=1)
+
+    if request.method == 'POST':
+        # Se o formulário for enviado, preenche o formset com os dados
+        formset = CriterionFormSet(request.POST, prefix='criteria')
+        if formset.is_valid():
+            # Por enquanto, vamos apenas confirmar que recebemos os dados
+            print("Formset válido!")
+            print(formset.cleaned_data)
+            
+            # NO PRÓXIMO PASSO, A LÓGICA DE ANALISAR/BAIXAR ENTRARÁ AQUI
+            return HttpResponse("Formulário enviado com sucesso! Verifique o console do servidor.")
+        # Se o formset for inválido, ele será re-renderizado com os erros
+    else:
+        # Se for a primeira vez na página (GET), cria um formset em branco
+        formset = CriterionFormSet(prefix='criteria')
+
+    context = {
+        'criteria_formset': formset
+    }
+    return render(request, 'analyzer/analysis_creator.html', context)

@@ -92,3 +92,50 @@ class UserUpdateForm(forms.ModelForm):
         if qs.exists():
             raise forms.ValidationError("Este nome de usuário já está em uso.")
         return username
+
+# ADICIONE A NOVA CLASSE DE FORMULÁRIO ABAIXO
+class CriterionForm(forms.Form):
+    # Dicionários de escolhas para os dropdowns
+    TYPE_CHOICES = [
+        ('number', 'Numérico'),
+        ('string', 'Texto'),
+        ('boolean', 'Sim/Não'),
+    ]
+    PROPORTIONALITY_CHOICES = [
+        ('proportional', 'Quanto mais, melhor'),
+        ('i_proportional', 'Quanto menos, melhor'),
+    ]
+    WEIGHT_CHOICES = [(i, f'{i} Estrela{"s" if i > 1 else ""}') for i in range(1, 6)] # 1 a 5 estrelas
+
+    # Campos do formulário
+    name = forms.CharField(
+        label="Nome do Critério",
+        max_length=100,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: Preço (R$)'})
+    )
+    criterion_type = forms.ChoiceField(
+        label="Tipo",
+        choices=TYPE_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    proportionality = forms.ChoiceField(
+        label="Preferência (para números)",
+        choices=PROPORTIONALITY_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        required=False # Opcional, pois só se aplica a números
+    )
+    weight = forms.ChoiceField(
+        label="Importância",
+        choices=WEIGHT_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    good_value = forms.CharField(
+        label="Valor Bom",
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: 60000'}),
+        required=False
+    )
+    neutral_value = forms.CharField(
+        label="Valor Neutro",
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: 85000'}),
+        required=False
+    )
