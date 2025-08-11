@@ -20,6 +20,21 @@
         <div class="card shadow-sm">
             <div class="card-header"><h4 class="mb-0">Etapa 1: Defina os Critérios</h4></div>
             <div class="card-body">
+                
+                <div class="row criterion-header fw-bold mb-2 d-none d-md-flex">
+                    <div class="col-md-3">Nome do Critério</div>
+                    <div class="col-md-2">Tipo</div>
+                    <div class="col-md-2">Importância (Peso)</div>
+                    <div class="col-md-4 conditional-numeric">
+                        <div class="row">
+                            <div class="col-6">Preferência</div>
+                            <div class="col-3">Bom</div>
+                            <div class="col-3">Neutro</div>
+                        </div>
+                    </div>
+                    <div class="col-md-1">Ação</div>
+                </div>
+
                 {{ criteria_formset.management_form }}
                 <div id="criteria-forms-container">
                     {% for form in criteria_formset %}
@@ -84,11 +99,12 @@
         const template = document.getElementById('criterion-form-template');
         const totalFormsInput = document.querySelector('#id_criteria-TOTAL_FORMS');
         const totalWeightDisplay = document.getElementById('total-weight-display');
+        const headerNumeric = document.querySelector('.criterion-header .conditional-numeric');
 
         function setupEventListeners(element) {
             element.addEventListener('change', function(event) {
                 if (event.target.matches('select[name$="-criterion_type"]')) {
-                    handleTypeChange(event.target);
+                    updateAllFormsVisibility(); // Atualiza tudo quando qualquer um muda
                 }
                 if (event.target.matches('input[name$="-weight"]')) {
                     updateTotalWeight();
@@ -102,12 +118,26 @@
             });
         }
         
-        function handleTypeChange(selectElement) {
-            const form = selectElement.closest('.criterion-form');
-            const numericGroup = form.querySelector('.conditional-numeric');
-            const show = selectElement.value === 'number';
-            // Em vez de 'block', usamos 'flex' para o display do grupo numérico se ele for um .row
-            numericGroup.style.display = show ? '' : 'none';
+        // Função centralizada para atualizar a visibilidade de todos os formulários e do cabeçalho
+        function updateAllFormsVisibility() {
+            let showNumericHeader = false;
+            container.querySelectorAll('.criterion-form').forEach(form => {
+                const select = form.querySelector('select[name$="-criterion_type"]');
+                const numericGroup = form.querySelector('.conditional-numeric');
+                const isDeleted = form.querySelector('input[type="checkbox"][name$="-DELETE"]')?.checked;
+                
+                if (select && !isDeleted) {
+                    const show = select.value === 'number';
+                    numericGroup.style.display = show ? '' : 'none';
+                    if (show) {
+                        showNumericHeader = true; // Se pelo menos um for numérico, mostra o cabeçalho
+                    }
+                }
+            });
+            // Atualiza a visibilidade do cabeçalho
+            if (headerNumeric) {
+                headerNumeric.style.display = showNumericHeader ? '' : 'none';
+            }
         }
 
         function handleDeleteClick(button) {
@@ -117,6 +147,7 @@
                 deleteCheckbox.checked = true;
                 form.style.display = 'none';
                 updateTotalWeight();
+                updateAllFormsVisibility(); // Re-avalia a visibilidade do cabeçalho
             }
         }
 
@@ -142,12 +173,13 @@
             container.appendChild(newFormElement);
             totalFormsInput.value = formNum + 1;
             
-            handleTypeChange(newFormElement.querySelector('select[name$="-criterion_type"]'));
+            updateAllFormsVisibility();
             updateTotalWeight();
         });
 
-        setupEventListeners(document.body); // Usar document.body para garantir que tudo seja capturado
-        container.querySelectorAll('select[name$="-criterion_type"]').forEach(select => handleTypeChange(select));
+        // Inicializa tudo
+        setupEventListeners(document.body);
+        updateAllFormsVisibility();
         updateTotalWeight();
     });
 </script>
