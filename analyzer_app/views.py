@@ -253,23 +253,27 @@ def profile_view(request):
 # SUBSTITUA A VIEW analysis_creator_view
 @login_required
 def analysis_creator_view(request):
-    # Habilita a funcionalidade de exclusão no formset
+    """
+    View para a página de criação de análises (planilhas).
+    """
     CriterionFormSet = formset_factory(CriterionForm, extra=1, can_delete=True)
 
     if request.method == 'POST':
         formset = CriterionFormSet(request.POST, prefix='criteria')
         if formset.is_valid():
             
-            # VALIDAÇÃO DA SOMA DOS PESOS
             total_weight = sum(form.cleaned_data.get('weight', 0) for form in formset.cleaned_data if not form.get('DELETE', False))
             
             if total_weight > 1.0:
                 messages.error(request, f"A soma dos pesos dos critérios ({total_weight:.2f}) não pode ultrapassar 1.0.")
-                # Re-renderiza o formset com os dados preenchidos para correção
                 return render(request, 'analyzer/analysis_creator.html', {'criteria_formset': formset})
 
-            # Passa os formulários válidos (não excluídos) para a função de geração
             valid_forms_data = [form for form in formset.cleaned_data if not form.get('DELETE', False)]
+            
+            if not valid_forms_data:
+                 messages.error(request, "Você precisa definir pelo menos um critério para a análise.")
+                 return render(request, 'analyzer/analysis_creator.html', {'criteria_formset': formset})
+
             csv_content, error_message = _generate_csv_string_from_formset(valid_forms_data)
             
             if error_message:
@@ -284,11 +288,37 @@ def analysis_creator_view(request):
                 return response
 
             elif action == 'analyze':
-                # ... (resto da lógica de análise permanece a mesma) ...
-        # Se o formset for inválido, ele será re-renderizado com os erros
-    else:
-        formset = CriterionFormSet(prefix='criteria')
+                # <<<< INÍCIO DO CÓDIGO QUE ESTAVA FALTANDO >>>>
+                try:
+                    with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.csv', encoding='utf-8') as temp_file:
+                        temp_file.write(csv_content)
+                        temp_file_path = temp_file.name
+                    
+                    analyzer = DataAnalyzer(temp_file_path)
+                    analyzer.load_and_prepare_data()
+                    analyzer.calculate_scores()
+                    
+                    podium_data = analyzer.get_podium_details()
+                    visualizations = analyzer.generate_visualizations()
+                    
+                    context = {
+                        'podium_data': podium_data,
+                        'visualizations': visualizations,
+                        'has_results': True,
+                        'file_name': 'Análise Customizada'
+                    }
+                    return render(request, 'analyzer/main.html', context)
+                
+                except Exception as e:
+                    messages.error(request, f"Erro durante a análise: {e}")
+                
+                finally:
+                    if 'temp_file_path' in locals() and os.path.exists(temp_file_path):
+                        os.remove(temp_file_path)
+                # <<<< FIM DO CÓDIGO QUE ESTAVA FALTANDO >>>>
 
+    # Se GET ou se o formset for inválido, renderiza a página de criação
+    formset = CriterionFormSet(prefix='criteria')
     return render(request, 'analyzer/analysis_creator.html', {'criteria_formset': formset})
 
 
