@@ -56,17 +56,15 @@
 
       <div class="d-flex align-items-center">
         {% if user.is_authenticated %}
-        <span class="navbar-text me-3">Olá, {{ user.username }}!</span>
+      <span class="navbar-text me-3">Olá, {{ user.username }}!</span>
 
-        <a href="{% url 'profile' %}" class="btn btn-outline-primary me-2">Perfil</a>
-        <a href="{% url 'user_analyses' %}" class="btn btn-outline-primary me-2">Minhas Análises</a>
+      <a href="{% url 'analysis_creator' %}" class="btn btn-outline-success me-2">Criar Análise</a>
 
-        <a href="{% url 'logout' %}" class="btn btn-outline-danger me-3" data-logout>Sair</a>
-        {% endif %}
+      <a href="{% url 'profile' %}" class="btn btn-outline-primary me-2">Perfil</a>
+      <a href="{% url 'user_analyses' %}" class="btn btn-outline-primary me-2">Minhas Análises</a>
 
-        <button id="themeToggle" class="btn btn-outline-secondary" title="Alternar tema">
-          <i id="themeIcon" class="bi bi-moon-fill"></i>
-        </button>
+      <a href="{% url 'logout' %}" class="btn btn-outline-danger me-3" data-logout>Sair</a>
+      {% endif %}
       </div>
     </div>
   </nav>
