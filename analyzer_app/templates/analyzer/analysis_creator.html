@@ -24,7 +24,8 @@
                 <div id="criteria-forms-container">
                     {% for form in criteria_formset %}
                     <div class="row criterion-form align-items-end mb-3 border-bottom pb-3">
-                        <div style="display:none;">{{ form.DELETE }}</div> <div class="col-md-3">
+                        <div style="display:none;">{{ form.DELETE }}</div>
+                        <div class="col-md-3">
                             <label class="form-label">{{ form.name.label }}</label>
                             {{ form.name }}
                         </div>
@@ -40,8 +41,7 @@
                             <label class="form-label">{{ form.weight.label }}</label>
                             {{ form.weight }}
                         </div>
-                        <div class="col-md-2">
-                            <div class="row">
+                        <div class="col-md-2"> <div class="row">
                                 <div class="col-6 conditional-numeric">
                                     <label class="form-label">{{ form.good_value.label }}</label>
                                     {{ form.good_value }}
@@ -53,7 +53,7 @@
                             </div>
                         </div>
                         <div class="col-md-1">
-                            <button type="button" class="btn btn-danger btn-sm delete-criterion-btn">Excluir</button>
+                            <button type="button" class="btn btn-danger btn-sm delete-criterion-btn w-100">Excluir</button>
                         </div>
                     </div>
                     {% endfor %}
@@ -90,8 +90,7 @@
             <label class="form-label">{{ criteria_formset.empty_form.weight.label }}</label>
             {{ criteria_formset.empty_form.weight }}
         </div>
-        <div class="col-md-2">
-            <div class="row">
+        <div class="col-md-2"> <div class="row">
                 <div class="col-6 conditional-numeric">
                     <label class="form-label">{{ criteria_formset.empty_form.good_value.label }}</label>
                     {{ criteria_formset.empty_form.good_value }}
@@ -103,7 +102,7 @@
             </div>
         </div>
         <div class="col-md-1">
-            <button type="button" class="btn btn-danger btn-sm delete-criterion-btn">Excluir</button>
+            <button type="button" class="btn btn-danger btn-sm delete-criterion-btn w-100">Excluir</button>
         </div>
     </div>
 </template>

@@ -251,6 +251,7 @@ def profile_view(request):
     })
     
 # SUBSTITUA A VIEW analysis_creator_view
+# SUBSTITUA A VIEW analysis_creator_view INTEIRA POR ESTA
 @login_required
 def analysis_creator_view(request):
     """
@@ -262,7 +263,8 @@ def analysis_creator_view(request):
         formset = CriterionFormSet(request.POST, prefix='criteria')
         if formset.is_valid():
             
-            total_weight = sum(form.cleaned_data.get('weight', 0) for form in formset.cleaned_data if not form.get('DELETE', False))
+            # LÓGICA CORRIGIDA: Acessa o dicionário 'form' diretamente, sem '.cleaned_data' extra.
+            total_weight = sum(form.get('weight', 0) for form in formset.cleaned_data if not form.get('DELETE', False))
             
             if total_weight > 1.0:
                 messages.error(request, f"A soma dos pesos dos critérios ({total_weight:.2f}) não pode ultrapassar 1.0.")
@@ -288,7 +290,6 @@ def analysis_creator_view(request):
                 return response
 
             elif action == 'analyze':
-                # <<<< INÍCIO DO CÓDIGO QUE ESTAVA FALTANDO >>>>
                 try:
                     with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.csv', encoding='utf-8') as temp_file:
                         temp_file.write(csv_content)
@@ -315,9 +316,7 @@ def analysis_creator_view(request):
                 finally:
                     if 'temp_file_path' in locals() and os.path.exists(temp_file_path):
                         os.remove(temp_file_path)
-                # <<<< FIM DO CÓDIGO QUE ESTAVA FALTANDO >>>>
 
-    # Se GET ou se o formset for inválido, renderiza a página de criação
     formset = CriterionFormSet(prefix='criteria')
     return render(request, 'analyzer/analysis_creator.html', {'criteria_formset': formset})
 
