@@ -250,12 +250,10 @@ def profile_view(request):
         'change_password': 'change_password' in request.POST,
     })
     
-# SUBSTITUA A VIEW analysis_creator_view
-# SUBSTITUA A VIEW analysis_creator_view INTEIRA POR ESTA
 @login_required
 def analysis_creator_view(request):
     """
-    View para a página de criação de análises (planilhas).
+    View para a página de criação de análises, agora com lógica completa.
     """
     CriterionFormSet = formset_factory(CriterionForm, extra=1, can_delete=True)
 
@@ -263,30 +261,33 @@ def analysis_creator_view(request):
         formset = CriterionFormSet(request.POST, prefix='criteria')
         if formset.is_valid():
             
-            # LÓGICA CORRIGIDA: Acessa o dicionário 'form' diretamente, sem '.cleaned_data' extra.
-            total_weight = sum(form.get('weight', 0) for form in formset.cleaned_data if not form.get('DELETE', False))
-            
+            # 1. Validação dos Critérios (Etapa 1)
+            total_weight = sum(form.cleaned_data.get('weight', 0) for form in formset.cleaned_data if not form.get('DELETE', False))
             if total_weight > 1.0:
-                messages.error(request, f"A soma dos pesos dos critérios ({total_weight:.2f}) não pode ultrapassar 1.0.")
+                messages.error(request, f"A soma dos pesos ({total_weight:.2f}) não pode ultrapassar 1.0.")
                 return render(request, 'analyzer/analysis_creator.html', {'criteria_formset': formset})
 
-            valid_forms_data = [form for form in formset.cleaned_data if not form.get('DELETE', False)]
-            
-            if not valid_forms_data:
-                 messages.error(request, "Você precisa definir pelo menos um critério para a análise.")
+            valid_criteria = [form for form in formset.cleaned_data if form and not form.get('DELETE', False)]
+            if not valid_criteria:
+                 messages.error(request, "Defina pelo menos um critério para a análise.")
                  return render(request, 'analyzer/analysis_creator.html', {'criteria_formset': formset})
 
-            csv_content, error_message = _generate_csv_string_from_formset(valid_forms_data)
+            # 2. Parse dos dados das Alternativas (Etapa 2)
+            alternatives_data, crit_map = _parse_alternatives_from_post(request.POST, formset)
+            
+            # 3. Geração do CSV Completo
+            analysis_name = request.POST.get('analysis_name', 'analise')
+            csv_content, error_message = _generate_complete_csv_string(valid_criteria, alternatives_data, crit_map)
             
             if error_message:
                 messages.error(request, error_message)
                 return render(request, 'analyzer/analysis_creator.html', {'criteria_formset': formset})
 
+            # 4. Execução da Ação (Download ou Análise)
             action = request.POST.get('action')
-
             if action == 'download':
                 response = HttpResponse(csv_content, content_type='text/csv')
-                response['Content-Disposition'] = 'attachment; filename="analise_customizada.csv"'
+                response['Content-Disposition'] = f'attachment; filename="{analysis_name}.csv"'
                 return response
 
             elif action == 'analyze':
@@ -306,13 +307,11 @@ def analysis_creator_view(request):
                         'podium_data': podium_data,
                         'visualizations': visualizations,
                         'has_results': True,
-                        'file_name': 'Análise Customizada'
+                        'file_name': analysis_name
                     }
                     return render(request, 'analyzer/main.html', context)
-                
                 except Exception as e:
                     messages.error(request, f"Erro durante a análise: {e}")
-                
                 finally:
                     if 'temp_file_path' in locals() and os.path.exists(temp_file_path):
                         os.remove(temp_file_path)
@@ -321,53 +320,63 @@ def analysis_creator_view(request):
     return render(request, 'analyzer/analysis_creator.html', {'criteria_formset': formset})
 
 
-# SUBSTITUA A FUNÇÃO INTEIRA por esta versão corrigida
-def _generate_csv_string_from_formset(cleaned_data):
+def _parse_alternatives_from_post(post_data, formset):
     """
-    Pega os dados limpos de um formset de critérios e retorna o conteúdo de um CSV como string.
+    Lê os dados brutos do request.POST e organiza os dados das alternativas.
+    """
+    alternatives = {}
+    crit_map = {str(i): form.cleaned_data.get('name') for i, form in enumerate(formset) if form.cleaned_data and not form.cleaned_data.get('DELETE')}
+    
+    # Regex para encontrar campos de alternativas: alternative-<num>-<field>
+    pattern = re.compile(r'alternative-(\d+)-(.+)')
+    
+    for key, value in post_data.items():
+        match = pattern.match(key)
+        if match:
+            index, field = match.groups()
+            if index not in alternatives:
+                alternatives[index] = {}
+            alternatives[index][field] = value
+            
+    return alternatives, crit_map
+
+
+def _generate_complete_csv_string(criteria_data, alternatives_data, crit_map):
+    """
+    Gera o CSV completo com base nos critérios e nas alternativas.
     """
     try:
-        # Inicializa as listas de dados para cada linha de configuração
-        header = ['Modelo']
-        pesos = ['PESO']
-        tipos = ['TIPO']
-        funcoes = ['FUNCAO']
-        bom_values = ['BOM']
-        neutro_values = ['NEUTRO']
-
-        for form_data in cleaned_data:
-            if not form_data: continue
-            
-            name = form_data.get('name')
-            header.append(name)
-            
-            pesos.append(form_data.get('weight', 0))
-            
-            type_map = {'string': 'string', 'number': 'number', 'boolean': 'boolean'}
-            tipos.append(type_map.get(form_data.get('criterion_type'), 'string'))
-
-            if form_data.get('criterion_type') == 'number':
-                funcoes.append(form_data.get('proportionality'))
-                bom_values.append(form_data.get('good_value'))
-                neutro_values.append(form_data.get('neutral_value'))
-            else:
-                funcoes.append('')
-                bom_values.append('')
-                neutro_values.append('')
+        header = ['Modelo'] + [c.get('name') for c in criteria_data]
+        pesos = ['PESO'] + [c.get('weight', 0) for c in criteria_data]
+        tipos = ['TIPO'] + [{'string': 'string', 'number': 'number', 'boolean': 'boolean'}.get(c.get('criterion_type')) for c in criteria_data]
+        funcoes = ['FUNCAO'] + [c.get('proportionality') if c.get('criterion_type') == 'number' else '' for c in criteria_data]
+        bom_values = ['BOM'] + [c.get('good_value') if c.get('criterion_type') == 'number' else '' for c in criteria_data]
+        neutro_values = ['NEUTRO'] + [c.get('neutral_value') if c.get('criterion_type') == 'number' else '' for c in criteria_data]
         
-        # Usa o módulo `io` e `csv` para montar a string de forma segura
+        # Monta as linhas das alternativas
+        alternative_rows = []
+        for index, alt_data in sorted(alternatives_data.items()):
+            row = [alt_data.get('name', '')]
+            # Itera na ordem original dos critérios para preencher os valores
+            for i in range(len(criteria_data)):
+                # O nome do campo é 'crit-<form_index>'
+                field_name = f'crit-{i}'
+                row.append(alt_data.get(field_name, ''))
+            alternative_rows.append(row)
+
+        # Escreve tudo em uma string
         output = io.StringIO()
         writer = csv.writer(output)
         
-        # Escreve as listas como linhas separadas
         writer.writerow(header)
         writer.writerow(pesos)
         writer.writerow(tipos)
         writer.writerow(funcoes)
         writer.writerow(bom_values)
         writer.writerow(neutro_values)
+        writer.writerows(alternative_rows)
 
         return output.getvalue(), None
 
     except Exception as e:
-        return None, f"Erro ao gerar o CSV a partir dos dados do formulário: {e}"
+        return None, f"Erro ao gerar o CSV: {e}"
