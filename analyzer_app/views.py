@@ -16,6 +16,7 @@ from django.contrib.auth import (
 import io      # <<< ADICIONE ESTA LINHA
 import csv     # <<< ADICIONE ESTA LINHA
 import tempfile
+import re
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordChangeForm
