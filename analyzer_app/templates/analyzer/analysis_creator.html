@@ -108,8 +108,13 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // --- ETAPA 1: GERENCIAMENTO DE CRITÉRIOS ---
+    // --- REFERÊNCIAS AOS ELEMENTOS ---
+    const mainForm = document.getElementById('analysis-creator-form');
     const step1Card = document.getElementById('step1-card');
+    const step2Card = document.getElementById('step2-card');
+    const proceedBtn = document.getElementById('proceed-to-step2-btn');
+    
+    // Elementos da Etapa 1
     const addCriterionBtn = document.getElementById('add-criterion-btn');
     const criteriaContainer = document.getElementById('criteria-forms-container');
     const criterionTemplate = document.getElementById('criterion-form-template');
@@ -117,6 +122,50 @@ document.addEventListener('DOMContentLoaded', function () {
     const totalWeightDisplay = document.getElementById('total-weight-display');
     const headerNumeric = document.querySelector('.criterion-header .conditional-numeric-header');
 
+    // Elementos da Etapa 2
+    const alternativesHeader = document.getElementById('alternatives-table-header');
+    const alternativesContainer = document.getElementById('alternatives-forms-container');
+    const addAlternativeBtn = document.getElementById('add-alternative-btn');
+    const alternativeTemplate = document.getElementById('alternative-form-template');
+    let alternativeCounter = 0;
+
+    // --- LÓGICA DE EVENTOS ---
+    step1Card.addEventListener('change', function(event) {
+        if (event.target.matches('select[name$="-criterion_type"]')) {
+            updateAllFormsVisibility();
+        }
+        if (event.target.matches('input[name$="-weight"]')) {
+            updateTotalWeight();
+        }
+    });
+
+    step1Card.addEventListener('click', function(event) {
+        if (event.target.classList.contains('delete-criterion-btn')) {
+            handleDeleteClick(event.target);
+        }
+    });
+
+    addCriterionBtn.addEventListener('click', addCriterionForm);
+    proceedBtn.addEventListener('click', proceedToStep2);
+    addAlternativeBtn.addEventListener('click', addAlternativeForm);
+
+    alternativesContainer.addEventListener('click', function(event) {
+        if (event.target.classList.contains('delete-alternative-btn')) {
+            event.target.closest('tr').remove();
+        }
+    });
+    
+    // <<--- INÍCIO DA CORREÇÃO --- >>
+    // Adiciona um listener para o evento de SUBMISSÃO do formulário
+    mainForm.addEventListener('submit', function() {
+        // Re-habilita todos os campos da Etapa 1 antes de enviar
+        step1Card.querySelectorAll('input, select, button').forEach(el => {
+            el.disabled = false;
+        });
+    });
+    // <<--- FIM DA CORREÇÃO --- >>
+
+    // --- FUNÇÕES ---
     function updateAllFormsVisibility() {
         let showNumericHeader = false;
         criteriaContainer.querySelectorAll('.criterion-form').forEach(form => {
@@ -144,8 +193,19 @@ document.addEventListener('DOMContentLoaded', function () {
         totalWeightDisplay.textContent = totalWeight.toFixed(2);
         totalWeightDisplay.classList.toggle('text-danger', totalWeight > 1.0);
     }
+    
+    function handleDeleteClick(button) {
+        const form = button.closest('.criterion-form');
+        const deleteCheckbox = form.querySelector('input[type="checkbox"][name$="-DELETE"]');
+        if (deleteCheckbox) {
+            deleteCheckbox.checked = true;
+            form.style.display = 'none';
+            updateTotalWeight();
+            updateAllFormsVisibility();
+        }
+    }
 
-    addCriterionBtn.addEventListener('click', function () {
+    function addCriterionForm() {
         let formNum = parseInt(totalFormsInput.value);
         const newFormHTML = criterionTemplate.innerHTML.replace(/__prefix__/g, formNum);
         const tempDiv = document.createElement('div');
@@ -154,45 +214,9 @@ document.addEventListener('DOMContentLoaded', function () {
         criteriaContainer.appendChild(newFormElement);
         totalFormsInput.value = formNum + 1;
         updateAllFormsVisibility();
-    });
-
-    criteriaContainer.addEventListener('click', function (event) {
-        if (event.target.classList.contains('delete-criterion-btn')) {
-            const form = event.target.closest('.criterion-form');
-            const deleteCheckbox = form.querySelector('input[type="checkbox"][name$="-DELETE"]');
-            if (deleteCheckbox) {
-                deleteCheckbox.checked = true;
-                form.style.display = 'none';
-                updateTotalWeight();
-                updateAllFormsVisibility();
-            }
-        }
-    });
+    }
     
-    criteriaContainer.addEventListener('change', function(event) {
-        if (event.target.matches('select[name$="-criterion_type"]')) {
-            updateAllFormsVisibility();
-        }
-        if (event.target.matches('input[name$="-weight"]')) {
-            updateTotalWeight();
-        }
-    });
-
-    // Inicialização da Etapa 1
-    updateAllFormsVisibility();
-    updateTotalWeight();
-
-    // --- TRANSIÇÃO DA ETAPA 1 PARA A ETAPA 2 ---
-    const step2Card = document.getElementById('step2-card');
-    const proceedBtn = document.getElementById('proceed-to-step2-btn');
-    const alternativesHeader = document.getElementById('alternatives-table-header');
-    const alternativesContainer = document.getElementById('alternatives-forms-container');
-    const addAlternativeBtn = document.getElementById('add-alternative-btn');
-    const alternativeTemplate = document.getElementById('alternative-form-template');
-    let alternativeCounter = 0;
-
-    proceedBtn.addEventListener('click', function() {
-        // Validações
+    function proceedToStep2() {
         if (!document.getElementById('analysis_name').value) {
             alert('Por favor, dê um nome para a análise.'); return;
         }
@@ -200,32 +224,22 @@ document.addEventListener('DOMContentLoaded', function () {
             alert('A soma dos pesos não pode ser maior que 1.0.'); return;
         }
 
-        // Trava os campos da Etapa 1
         step1Card.querySelectorAll('input, select, button').forEach(el => { el.disabled = true; });
-
-        // Monta a Etapa 2
+        
         let headerHTML = '<tr><th style="width: 20%;">Nome da Alternativa</th>';
         let templateRowHTML = '<td><input type="text" name="alternative-0-name" class="form-control" required></td>';
-        let critIndex = 0;
-
+        
         criteriaContainer.querySelectorAll('.criterion-form').forEach(form => {
             const formIndex = form.querySelector('input[name$="-name"]').name.match(/criteria-(\d+)-name/)[1];
             const isDeleted = form.querySelector('input[type="checkbox"][name$="-DELETE"]')?.checked;
             if (form.style.display !== 'none' && !isDeleted) {
                 const critName = form.querySelector('input[name$="-name"]').value;
                 headerHTML += `<th>${critName}</th>`;
-                
                 const critType = form.querySelector('select[name$="-criterion_type"]').value;
                 const fieldName = `alternative-0-crit-${formIndex}`;
-                
-                if (critType === 'number') {
-                    templateRowHTML += `<td><input type="number" step="any" name="${fieldName}" class="form-control"></td>`;
-                } else if (critType === 'boolean') {
-                    templateRowHTML += `<td><select name="${fieldName}" class="form-select"><option value="TRUE">Sim</option><option value="FALSE" selected>Não</option></select></td>`;
-                } else { // string
-                    templateRowHTML += `<td><input type="text" name="${fieldName}" class="form-control"></td>`;
-                }
-                critIndex++;
+                if (critType === 'number') templateRowHTML += `<td><input type="number" step="any" name="${fieldName}" class="form-control"></td>`;
+                else if (critType === 'boolean') templateRowHTML += `<td><select name="${fieldName}" class="form-select"><option value="TRUE">Sim</option><option value="FALSE" selected>Não</option></select></td>`;
+                else templateRowHTML += `<td><input type="text" name="${fieldName}" class="form-control"></td>`;
             }
         });
         headerHTML += '<th>Ação</th></tr>';
@@ -233,24 +247,20 @@ document.addEventListener('DOMContentLoaded', function () {
 
         alternativesHeader.innerHTML = headerHTML;
         alternativeTemplate.innerHTML = `<tr>${templateRowHTML}</tr>`;
-
-        // Mostra a Etapa 2
+        
         step2Card.classList.remove('d-none');
         addAlternativeBtn.click();
-    });
+    }
 
-    // Lógica para adicionar/excluir alternativas
-    addAlternativeBtn.addEventListener('click', function() {
+    function addAlternativeForm() {
         const templateHTML = alternativeTemplate.innerHTML.replace(/-0-/g, `-${alternativeCounter}-`);
         alternativesContainer.insertAdjacentHTML('beforeend', templateHTML);
         alternativeCounter++;
-    });
+    }
 
-    alternativesContainer.addEventListener('click', function(event) {
-        if (event.target.classList.contains('delete-alternative-btn')) {
-            event.target.closest('tr').remove();
-        }
-    });
+    // Inicialização da página
+    updateAllFormsVisibility();
+    updateTotalWeight();
 });
 </script>
 {% endblock %}
