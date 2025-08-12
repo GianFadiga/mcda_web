@@ -253,81 +253,85 @@ def profile_view(request):
 @login_required
 def analysis_creator_view(request):
     """
-    View para a página de criação de análises, agora com lógica completa.
+    View para a página de criação de análises, com lógica de validação corrigida.
     """
     CriterionFormSet = formset_factory(CriterionForm, extra=1, can_delete=True)
 
     if request.method == 'POST':
         formset = CriterionFormSet(request.POST, prefix='criteria')
-        if formset.is_valid():
-            
-            # 1. Validação dos Critérios (Etapa 1)
-            total_weight = sum(form.cleaned_data.get('weight', 0) for form in formset.cleaned_data if not form.get('DELETE', False))
-            if total_weight > 1.0:
-                messages.error(request, f"A soma dos pesos ({total_weight:.2f}) não pode ultrapassar 1.0.")
-                return render(request, 'analyzer/analysis_creator.html', {'criteria_formset': formset})
 
-            valid_criteria = [form for form in formset.cleaned_data if form and not form.get('DELETE', False)]
-            if not valid_criteria:
-                 messages.error(request, "Defina pelo menos um critério para a análise.")
-                 return render(request, 'analyzer/analysis_creator.html', {'criteria_formset': formset})
+        # A validação do formset agora funciona como um guarda inicial
+        if not formset.is_valid():
+            messages.error(request, "Houve um erro nos critérios definidos. Por favor, verifique os campos.")
+            return render(request, 'analyzer/analysis_creator.html', {'criteria_formset': formset})
 
-            # 2. Parse dos dados das Alternativas (Etapa 2)
-            alternatives_data, crit_map = _parse_alternatives_from_post(request.POST, formset)
-            
-            # 3. Geração do CSV Completo
-            analysis_name = request.POST.get('analysis_name', 'analise')
-            csv_content, error_message = _generate_complete_csv_string(valid_criteria, alternatives_data, crit_map)
-            
-            if error_message:
-                messages.error(request, error_message)
-                return render(request, 'analyzer/analysis_creator.html', {'criteria_formset': formset})
+        # Se o formset for válido, extraímos os dados e continuamos
+        valid_criteria = [form for form in formset.cleaned_data if form and not form.get('DELETE', False)]
+        
+        total_weight = sum(crit.get('weight', 0) for crit in valid_criteria)
+        if total_weight > 1.0:
+            messages.error(request, f"A soma dos pesos ({total_weight:.2f}) não pode ultrapassar 1.0.")
+            # Re-renderiza o formset com os dados preenchidos para o usuário corrigir
+            return render(request, 'analyzer/analysis_creator.html', {'criteria_formset': CriterionFormSet(request.POST, prefix='criteria')})
 
-            # 4. Execução da Ação (Download ou Análise)
-            action = request.POST.get('action')
-            if action == 'download':
-                response = HttpResponse(csv_content, content_type='text/csv')
-                response['Content-Disposition'] = f'attachment; filename="{analysis_name}.csv"'
-                return response
+        if not valid_criteria:
+             messages.error(request, "Defina pelo menos um critério para a análise.")
+             return render(request, 'analyzer/analysis_creator.html', {'criteria_formset': formset})
 
-            elif action == 'analyze':
-                try:
-                    with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.csv', encoding='utf-8') as temp_file:
-                        temp_file.write(csv_content)
-                        temp_file_path = temp_file.name
-                    
-                    analyzer = DataAnalyzer(temp_file_path)
-                    analyzer.load_and_prepare_data()
-                    analyzer.calculate_scores()
-                    
-                    podium_data = analyzer.get_podium_details()
-                    visualizations = analyzer.generate_visualizations()
-                    
-                    context = {
-                        'podium_data': podium_data,
-                        'visualizations': visualizations,
-                        'has_results': True,
-                        'file_name': analysis_name
-                    }
-                    return render(request, 'analyzer/main.html', context)
-                except Exception as e:
-                    messages.error(request, f"Erro durante a análise: {e}")
-                finally:
-                    if 'temp_file_path' in locals() and os.path.exists(temp_file_path):
-                        os.remove(temp_file_path)
+        # Parse dos dados das Alternativas (Etapa 2)
+        alternatives_data = _parse_alternatives_from_post(request.POST)
+        
+        # Geração do CSV Completo
+        analysis_name = request.POST.get('analysis_name', 'analise')
+        csv_content, error_message = _generate_complete_csv_string(valid_criteria, alternatives_data)
+        
+        if error_message:
+            messages.error(request, error_message)
+            return render(request, 'analyzer/analysis_creator.html', {'criteria_formset': formset})
 
+        # Execução da Ação (Download ou Análise)
+        action = request.POST.get('action')
+        if action == 'download':
+            response = HttpResponse(csv_content, content_type='text/csv')
+            response['Content-Disposition'] = f'attachment; filename="{analysis_name}.csv"'
+            return response
+
+        elif action == 'analyze':
+            try:
+                with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.csv', encoding='utf-8') as temp_file:
+                    temp_file.write(csv_content)
+                    temp_file_path = temp_file.name
+                
+                analyzer = DataAnalyzer(temp_file_path)
+                analyzer.load_and_prepare_data()
+                analyzer.calculate_scores()
+                
+                podium_data = analyzer.get_podium_details()
+                visualizations = analyzer.generate_visualizations()
+                
+                context = {
+                    'podium_data': podium_data,
+                    'visualizations': visualizations,
+                    'has_results': True,
+                    'file_name': analysis_name
+                }
+                return render(request, 'analyzer/main.html', context)
+            except Exception as e:
+                messages.error(request, f"Erro durante a análise: {e}")
+            finally:
+                if 'temp_file_path' in locals() and os.path.exists(temp_file_path):
+                    os.remove(temp_file_path)
+    
+    # Se GET, renderiza a página de criação
     formset = CriterionFormSet(prefix='criteria')
     return render(request, 'analyzer/analysis_creator.html', {'criteria_formset': formset})
 
 
-def _parse_alternatives_from_post(post_data, formset):
+def _parse_alternatives_from_post(post_data):
     """
     Lê os dados brutos do request.POST e organiza os dados das alternativas.
     """
     alternatives = {}
-    crit_map = {str(i): form.cleaned_data.get('name') for i, form in enumerate(formset) if form.cleaned_data and not form.cleaned_data.get('DELETE')}
-    
-    # Regex para encontrar campos de alternativas: alternative-<num>-<field>
     pattern = re.compile(r'alternative-(\d+)-(.+)')
     
     for key, value in post_data.items():
@@ -338,10 +342,10 @@ def _parse_alternatives_from_post(post_data, formset):
                 alternatives[index] = {}
             alternatives[index][field] = value
             
-    return alternatives, crit_map
+    return sorted(alternatives.values(), key=lambda x: x.get('name', ''))
 
 
-def _generate_complete_csv_string(criteria_data, alternatives_data, crit_map):
+def _generate_complete_csv_string(criteria_data, alternatives_data):
     """
     Gera o CSV completo com base nos critérios e nas alternativas.
     """
@@ -353,18 +357,15 @@ def _generate_complete_csv_string(criteria_data, alternatives_data, crit_map):
         bom_values = ['BOM'] + [c.get('good_value') if c.get('criterion_type') == 'number' else '' for c in criteria_data]
         neutro_values = ['NEUTRO'] + [c.get('neutral_value') if c.get('criterion_type') == 'number' else '' for c in criteria_data]
         
-        # Monta as linhas das alternativas
         alternative_rows = []
-        for index, alt_data in sorted(alternatives_data.items()):
+        for alt_data in alternatives_data:
             row = [alt_data.get('name', '')]
             # Itera na ordem original dos critérios para preencher os valores
             for i in range(len(criteria_data)):
-                # O nome do campo é 'crit-<form_index>'
                 field_name = f'crit-{i}'
                 row.append(alt_data.get(field_name, ''))
             alternative_rows.append(row)
 
-        # Escreve tudo em uma string
         output = io.StringIO()
         writer = csv.writer(output)
         
