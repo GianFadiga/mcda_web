@@ -13,12 +13,11 @@ import numpy as np
 import csv
 from typing import Dict, Optional, List, Union, Any
 
-
 class DataAnalyzer:
     """Classe principal para análise e comparação de dados de produtos."""
 
+    # ... (init, load_and_prepare_data, etc. - todo o início da classe) ...
     def __init__(self, file_path: str) -> None:
-        """Inicializa o analisador com o caminho do arquivo de dados."""
         self.file_path = file_path
         self.df = None
         self.weights = None
@@ -35,7 +34,6 @@ class DataAnalyzer:
     # ===============================================================
 
     def load_and_prepare_data(self) -> None:
-        """Carrega e prepara os dados para análise."""
         self._load_raw_data()
         self._clean_empty_columns()
         self._extract_configurations()
@@ -45,84 +43,63 @@ class DataAnalyzer:
         self._convert_data_types()
 
     def _load_raw_data(self) -> None:
-        """Carrega os dados brutos do CSV, com detecção robusta de separador e cabeçalho."""
         try:
             with open(self.file_path, 'r', encoding='UTF-8', newline='') as f:
                 first_line = f.readline()
-                f.seek(0) 
-                
+                f.seek(0)
                 try:
                     dialect = csv.Sniffer().sniff(f.read(2048))
                     separator = dialect.delimiter
                 except csv.Error:
-                    separator = ',' 
-                
+                    separator = ','
                 f.seek(0)
                 print(f"Separador '{separator}' detectado.")
-
                 config_keywords = ['PESO', 'TIPO', 'FUNCAO', 'BOM', 'NEUTRO']
                 is_data_row = any(first_line.strip().upper().startswith(kw) for kw in config_keywords)
 
-            if not is_data_row:
-                self.df = pd.read_csv(self.file_path, sep=separator, skipinitialspace=True)
-                print("Arquivo carregado com cabeçalho.")
-            else:
-                self.df = pd.read_csv(self.file_path, sep=separator, skipinitialspace=True, header=None)
+            header_option = None if is_data_row else 0
+            self.df = pd.read_csv(self.file_path, sep=separator, skipinitialspace=True, header=header_option)
+            if is_data_row:
                 self.df.columns = [f'Coluna_{i+1}' for i in range(len(self.df.columns))]
-                print("Arquivo carregado sem cabeçalho. Nomes de coluna genéricos foram criados.")
+                print("Arquivo carregado sem cabeçalho.")
+            else:
+                 print("Arquivo carregado com cabeçalho.")
 
             if not self.df.empty:
                  self.model_column = self.df.columns[0]
             else:
-                raise ValueError("Arquivo CSV está vazio ou não pôde ser lido corretamente.")
-
+                raise ValueError("Arquivo CSV está vazio.")
         except Exception as e:
-            raise ValueError(f"Erro ao carregar ou processar arquivo: {str(e)}")
+            raise ValueError(f"Erro ao carregar arquivo: {e}")
 
 
     def _clean_empty_columns(self) -> None:
-        """Remove colunas totalmente vazias do DataFrame."""
-        self.df = self.df.dropna(axis=1, how='all')
+        self.df.dropna(axis=1, how='all', inplace=True)
 
     def _extract_configurations(self) -> None:
-        """Extrai configurações de forma flexível, suportando o formato novo e o antigo."""
-        if len(self.df) < 3:
-            raise ValueError("Arquivo CSV não contém linhas suficientes para configurações")
-
+        if len(self.df) < 3: raise ValueError("Arquivo CSV não tem linhas de configuração suficientes.")
         first_col = self.df.columns[0]
         
-        first_val = self.df[first_col].iloc[0]
-        is_new_format = isinstance(first_val, str) and first_val.upper() in ['PESO', 'TIPO', 'FUNCAO']
+        # Normaliza a primeira coluna para string para a verificação
+        df_str_col = self.df[first_col].astype(str)
+        is_new_format = any(val.upper() in ['PESO', 'TIPO', 'FUNCAO'] for val in df_str_col)
 
         if is_new_format:
-            try:
-                print("Tentando extrair configuração pelo método novo (com identificadores).")
-                if not all(x in self.df[first_col].values for x in ['PESO', 'TIPO', 'FUNCAO']):
-                     raise ValueError("Identificadores de configuração (PESO, TIPO, FUNCAO) não encontrados.")
-
-                self.weights = self.df[self.df[first_col] == 'PESO'].iloc[0].drop(first_col).dropna().astype(float)
-                self.data_types = self.df[self.df[first_col] == 'TIPO'].iloc[0].drop(first_col).dropna()
-                self.proportionality = self.df[self.df[first_col] == 'FUNCAO'].iloc[0].drop(first_col).dropna()
-                return
-            except (IndexError, ValueError) as e:
-                print(f"Falha no método novo: {e}. Tentando método antigo.")
-
-        print("Extraindo configuração pelo método antigo (baseado em posição).")
-        self.df.loc[self.df.index[0], first_col] = 'PESO'
-        self.df.loc[self.df.index[1], first_col] = 'TIPO'
-        self.df.loc[self.df.index[2], first_col] = 'FUNCAO'
-        
-        # O formato antigo não tem identificador para BOM/NEUTRO na coluna, então precisamos achar por valor
-        bom_row = self.df[self.df.apply(lambda row: 'BOM' in row.values, axis=1)]
-        if not bom_row.empty: self.df.loc[bom_row.index[0], first_col] = 'BOM'
-
-        neutro_row = self.df[self.df.apply(lambda row: 'NEUTRO' in row.values, axis=1)]
-        if not neutro_row.empty: self.df.loc[neutro_row.index[0], first_col] = 'NEUTRO'
-
-
-        self.weights = self.df[self.df[first_col] == 'PESO'].iloc[0].drop(first_col).dropna().astype(float)
-        self.data_types = self.df[self.df[first_col] == 'TIPO'].iloc[0].drop(first_col).dropna()
-        self.proportionality = self.df[self.df[first_col] == 'FUNCAO'].iloc[0].drop(first_col).dropna()
+            print("Tentando extrair configuração pelo método novo (com identificadores).")
+            # Força os valores a serem strings para a comparação
+            self.df[first_col] = self.df[first_col].astype(str)
+            self.weights = self.df[self.df[first_col].str.upper() == 'PESO'].iloc[0].drop(first_col).dropna().astype(float)
+            self.data_types = self.df[self.df[first_col].str.upper() == 'TIPO'].iloc[0].drop(first_col).dropna()
+            self.proportionality = self.df[self.df[first_col].str.upper() == 'FUNCAO'].iloc[0].drop(first_col).dropna()
+        else:
+            print("Extraindo configuração pelo método antigo (baseado em posição).")
+            self.weights = self.df.iloc[0].dropna().astype(float)
+            self.data_types = self.df.iloc[1].dropna()
+            self.proportionality = self.df.iloc[2].dropna()
+            # Adiciona os identificadores para padronizar o dataframe
+            self.df.loc[self.df.index[0], first_col] = 'PESO'
+            self.df.loc[self.df.index[1], first_col] = 'TIPO'
+            self.df.loc[self.df.index[2], first_col] = 'FUNCAO'
 
 
     def _map_string_columns(self) -> None:
@@ -152,18 +129,16 @@ class DataAnalyzer:
                 print(f"[DEBUG] Erro: Não foi possível mapear a coluna de pontos para '{col}'.")
 
     def _extract_reference_values(self) -> None:
-        """Extrai valores de referência BOM e NEUTRO."""
-        good_row = self.df[self.df[self.model_column] == 'BOM']
-        neutral_row = self.df[self.df[self.model_column] == 'NEUTRO']
+        self.df[self.model_column] = self.df[self.model_column].astype(str)
+        good_row = self.df[self.df[self.model_column].str.upper() == 'BOM']
+        neutral_row = self.df[self.df[self.model_column].str.upper() == 'NEUTRO']
         self.good_values = good_row.iloc[0].dropna() if not good_row.empty else pd.Series(dtype='object')
         self.neutral_values = neutral_row.iloc[0].dropna() if not neutral_row.empty else pd.Series(dtype='object')
-        if good_row.empty or neutral_row.empty: print("Aviso: Linhas de referência 'BOM' ou 'NEUTRO' não encontradas")
 
     def _prepare_calculation_data(self) -> None:
-        """Prepara o DataFrame para cálculos, removendo linhas de configuração."""
         config_identifiers = ['PESO', 'TIPO', 'FUNCAO', 'BOM', 'NEUTRO']
-        self.calculation_df = self.df[~self.df[self.model_column].isin(config_identifiers)].reset_index(drop=True).copy()
-
+        # Garante que a comparação seja case-insensitive
+        self.calculation_df = self.df[~self.df[self.model_column].str.upper().isin(config_identifiers)].reset_index(drop=True).copy()
 
     def _convert_data_types(self) -> None:
         """Converte os tipos de dados conforme especificado."""

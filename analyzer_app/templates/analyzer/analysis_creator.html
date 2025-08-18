@@ -158,7 +158,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const mainForm = document.getElementById('analysis-creator-form');
     const step1Card = document.getElementById('step1-card');
     const step2Card = document.getElementById('step2-card');
-    const proceedBtn = document.getElementById('proceed-to-step2-btn');
     
     // --- Etapa 1 ---
     const criteriaContainer = document.getElementById('criteria-forms-container');
@@ -179,14 +178,12 @@ document.addEventListener('DOMContentLoaded', function () {
     const stringModalTitle = document.getElementById('modalCriterionName');
     const stringValuesContainer = document.getElementById('string-values-container');
     const stringValueTemplate = document.getElementById('string-value-row-template');
-    const addStringValueBtn = document.getElementById('add-string-value-btn');
-    const saveStringValuesBtn = document.getElementById('save-string-values-btn');
     let activeCriterionForm = null;
 
     // ===================================================================
     //  II. FUNÇÕES DE MANIPULAÇÃO
     // ===================================================================
-    // ... (Todas as funções como updateAllFormsVisibility, updateTotalWeight, etc. continuam aqui, sem alterações)
+
     function updateAllFormsVisibility() {
         let showNumericHeader = false;
         criteriaContainer.querySelectorAll('.criterion-form').forEach(form => {
@@ -194,6 +191,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const numericGroup = form.querySelector('.conditional-numeric');
             const stringGroup = form.querySelector('.conditional-string');
             const isDeleted = form.querySelector('input[type="checkbox"][name$="-DELETE"]')?.checked;
+            
             if (select && !isDeleted && form.style.display !== 'none') {
                 const isNumeric = select.value === 'number';
                 const isString = select.value === 'string';
@@ -204,6 +202,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         if (headerNumeric) headerNumeric.style.display = showNumericHeader ? '' : 'none';
     }
+
     function updateTotalWeight() {
         let totalWeight = 0;
         criteriaContainer.querySelectorAll('.criterion-form').forEach(form => {
@@ -216,6 +215,7 @@ document.addEventListener('DOMContentLoaded', function () {
         totalWeightDisplay.textContent = totalWeight.toFixed(2);
         totalWeightDisplay.classList.toggle('text-danger', totalWeight > 1.0);
     }
+
     function addCriterionForm() {
         let formNum = parseInt(totalFormsInput.value);
         const newFormHTML = criterionTemplate.innerHTML.replace(/__prefix__/g, formNum);
@@ -227,6 +227,7 @@ document.addEventListener('DOMContentLoaded', function () {
         updateAllFormsVisibility();
         updateTotalWeight();
     }
+    
     function openStringModal(button) {
         activeCriterionForm = button.closest('.criterion-form');
         const criterionName = activeCriterionForm.querySelector('input[name$="-name"]').value || "[Critério sem nome]";
@@ -243,12 +244,14 @@ document.addEventListener('DOMContentLoaded', function () {
             addStringValueRow();
         }
     }
+
     function addStringValueRow(value = '', level = 'desejavel') {
         const newRow = stringValueTemplate.content.cloneNode(true);
         newRow.querySelector('.string-value-input').value = value;
         newRow.querySelector('.string-level-select').value = level;
         stringValuesContainer.appendChild(newRow);
     }
+
     function saveStringValues() {
         const values = [];
         stringValuesContainer.querySelectorAll('.string-value-row').forEach(row => {
@@ -264,6 +267,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         stringModal.hide();
     }
+
     function proceedToStep2() {
         if (!document.getElementById('analysis_name').value.trim()) {
             alert('Por favor, dê um nome para a análise.'); return;
@@ -284,9 +288,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 headerHTML += `<th>${critName}</th>`;
                 const critType = form.querySelector('select[name$="-criterion_type"]').value;
                 const fieldName = `alternative-0-crit-${formIndex}`;
-                if (critType === 'number') { templateRowHTML += `<td><input type="number" step="any" name="${fieldName}" class="form-control"></td>`; }
-                else if (critType === 'boolean') { templateRowHTML += `<td><select name="${fieldName}" class="form-select"><option value="TRUE">Sim</option><option value="FALSE" selected>Não</option></select></td>`; }
-                else if (critType === 'string') {
+                if (critType === 'number') {
+                    templateRowHTML += `<td><input type="number" step="any" name="${fieldName}" class="form-control"></td>`;
+                } else if (critType === 'boolean') {
+                    templateRowHTML += `<td><select name="${fieldName}" class="form-select"><option value="TRUE">Sim</option><option value="FALSE" selected>Não</option></select></td>`;
+                } else if (critType === 'string') {
                     const hiddenInput = form.querySelector('input[name$="-string_values"]');
                     let hasValues = false;
                     if (hiddenInput && hiddenInput.value) {
@@ -301,7 +307,9 @@ document.addEventListener('DOMContentLoaded', function () {
                             }
                         } catch (e) { console.error("JSON inválido para dropdown:", e); }
                     }
-                    if (!hasValues) { templateRowHTML += `<td><input type="text" name="${fieldName}" class="form-control" placeholder="Texto livre"></td>`; }
+                    if (!hasValues) {
+                        templateRowHTML += `<td><input type="text" name="${fieldName}" class="form-control" placeholder="Texto livre"></td>`;
+                    }
                 }
             }
         });
@@ -312,6 +320,7 @@ document.addEventListener('DOMContentLoaded', function () {
         step2Card.classList.remove('d-none');
         document.getElementById('add-alternative-btn').click();
     }
+
     function addAlternativeForm() {
         const templateHTML = alternativeTemplate.innerHTML.replace(/-0-/g, `-${alternativeCounter}-`);
         alternativesContainer.insertAdjacentHTML('beforeend', templateHTML);
@@ -321,15 +330,24 @@ document.addEventListener('DOMContentLoaded', function () {
     // ===================================================================
     //  III. EVENT LISTENERS PRINCIPAIS
     // ===================================================================
+    document.getElementById('add-criterion-btn').addEventListener('click', addCriterionForm);
+    document.getElementById('proceed-to-step2-btn').addEventListener('click', proceedToStep2);
+    document.getElementById('add-alternative-btn').addEventListener('click', addAlternativeForm);
     
-    // Listener principal para cliques, usando delegação de eventos
-    document.body.addEventListener('click', function(event) {
+    // Listeners para o Modal de String
+    document.getElementById('add-string-value-btn').addEventListener('click', addStringValueRow);
+    document.getElementById('save-string-values-btn').addEventListener('click', saveStringValues);
+    stringValuesContainer.addEventListener('click', function(event) {
+        if (event.target.classList.contains('delete-string-value-btn')) {
+            event.target.closest('.string-value-row').remove();
+        }
+    });
+
+    // Listener geral usando delegação para ações dentro dos formulários
+    mainForm.addEventListener('click', function(event) {
         const target = event.target;
-        if (target.id === 'add-criterion-btn') { addCriterionForm(); }
-        else if (target.id === 'proceed-to-step2-btn') { proceedToStep2(); }
-        else if (target.id === 'add-alternative-btn') { addAlternativeForm(); }
-        else if (target.classList.contains('open-string-modal-btn')) { openStringModal(target); }
-        else if (target.classList.contains('delete-criterion-btn')) {
+        if (target.classList.contains('open-string-modal-btn')) { openStringModal(target); }
+        if (target.classList.contains('delete-criterion-btn')) {
             const form = target.closest('.criterion-form');
             const deleteCheckbox = form.querySelector('input[type="checkbox"][name$="-DELETE"]');
             if (deleteCheckbox) {
@@ -339,27 +357,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 updateAllFormsVisibility();
             }
         } 
-        else if (target.classList.contains('delete-alternative-btn')) {
-            target.closest('tr').remove();
-        } 
-        else if (target.classList.contains('weight-step-btn')) {
+        if (target.classList.contains('delete-alternative-btn')) { target.closest('tr').remove(); }
+        if (target.classList.contains('weight-step-btn')) {
             const step = parseFloat(target.dataset.step);
-            const inputGroup = target.closest('.input-group');
-            const numberInput = inputGroup.querySelector('input[type="number"]');
+            const numberInput = target.closest('.input-group').querySelector('input[type="number"]');
             let currentValue = parseFloat(numberInput.value) || 0;
-            let newValue = currentValue + step;
-            newValue = Math.max(0.01, Math.min(1.0, newValue));
+            let newValue = Math.max(0.01, Math.min(1.0, currentValue + step));
             numberInput.value = newValue.toFixed(2);
             numberInput.dispatchEvent(new Event('input', { bubbles: true }));
-        }
-    });
-
-    // Listeners diretos para os botões do MODAL
-    addStringValueBtn.addEventListener('click', addStringValueRow);
-    saveStringValuesBtn.addEventListener('click', saveStringValues);
-    stringValuesContainer.addEventListener('click', function(event) {
-        if (event.target.classList.contains('delete-string-value-btn')) {
-            event.target.closest('.string-value-row').remove();
         }
     });
 
