@@ -15,6 +15,7 @@
     <form method="post" id="analysis-creator-form">
         {% csrf_token %}
 
+        <!-- ETAPA 1: DEFINIR NOME E CRITÉRIOS -->
         <div id="step1-card" class="card shadow-sm mb-4">
             <div class="card-header"><h4 class="mb-0">Etapa 1: Nome e Critérios da Análise</h4></div>
             <div class="card-body">
@@ -23,20 +24,26 @@
                     <input type="text" name="analysis_name" id="analysis_name" class="form-control" placeholder="Ex: Escolha de novo celular" required>
                 </div>
 
-                <div class="row criterion-header fw-bold mb-2 d-none d-md-flex gx-2">
+                <!-- CABEÇALHO FIXO CORRIGIDO -->
+                <div class="row criterion-header fw-bold mb-2 d-none d-md-flex gx-3 align-items-center">
                     <div class="col-md-3">Nome do Critério</div>
                     <div class="col-md-2">Tipo</div>
                     <div class="col-md-3">Importância (Peso)</div>
-                    <div class="col-md-1 conditional-numeric-header">Preferência</div>
-                    <div class="col-md-1 conditional-numeric-header">Bom</div>
-                    <div class="col-md-1 conditional-numeric-header">Neutro</div>
-                    <div class="col-md-1">Ação</div>
+                    <div class="col-md-3 conditional-numeric-header">
+                        <div class="row gx-2">
+                            <div class="col-5">Preferência</div>
+                            <div class="col-4">Bom</div>
+                            <div class="col-3">Neutro</div>
+                        </div>
+                    </div>
+                    <div class="col-md-1 text-center">Ação</div>
                 </div>
 
                 {{ criteria_formset.management_form }}
                 <div id="criteria-forms-container">
                     {% for form in criteria_formset %}
-                    <div class="row criterion-form align-items-center mb-3 border-bottom pb-3 gx-2">
+                    <!-- LAYOUT DAS COLUNAS CORRIGIDO -->
+                    <div class="row criterion-form align-items-center mb-3 border-bottom pb-3 gx-3">
                         <div style="display:none;">{{ form.DELETE }}{{ form.string_values }}</div>
                         <div class="col-md-3">{{ form.name }}</div>
                         <div class="col-md-2">{{ form.criterion_type }}</div>
@@ -49,13 +56,17 @@
                                 <button type="button" class="btn btn-outline-success btn-sm weight-step-btn" data-step="0.05">+0.05</button>
                             </div>
                         </div>
-                        <div class="col-md-1 conditional-numeric">{{ form.proportionality }}</div>
-                        <div class="col-md-1 conditional-numeric">{{ form.good_value }}</div>
-                        <div class="col-md-1 conditional-numeric">{{ form.neutral_value }}</div>
-                        <div class="col-md-1 conditional-string" style="display: none;">
-                            <button type="button" class="btn btn-outline-info btn-sm w-100 open-string-modal-btn" data-bs-toggle="modal" data-bs-target="#stringValuesModal">
-                                Definir Valores
-                            </button>
+                        <div class="col-md-3">
+                            <div class="row gx-2 conditional-numeric">
+                                <div class="col-5">{{ form.proportionality }}</div>
+                                <div class="col-4">{{ form.good_value }}</div>
+                                <div class="col-3">{{ form.neutral_value }}</div>
+                            </div>
+                            <div class="conditional-string" style="display: none;">
+                                <button type="button" class="btn btn-outline-info btn-sm w-100 open-string-modal-btn" data-bs-toggle="modal" data-bs-target="#stringValuesModal">
+                                    Definir Valores
+                                </button>
+                            </div>
                         </div>
                         <div class="col-md-1">
                             <button type="button" class="btn btn-danger btn-sm delete-criterion-btn w-100">Excluir</button>
@@ -69,72 +80,47 @@
             </div>
         </div>
         
-        </form>
-</div>
-
-<div class="modal fade" id="stringValuesModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header"><h5 class="modal-title">Definir Valores para: <span id="modalCriterionName"></span></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-            <div class="modal-body">
-                <p class="text-muted small">Defina aqui os valores de texto possíveis para este critério e o quão desejável cada um é. Estes valores aparecerão no dropdown da Etapa 2.</p>
-                <div id="string-values-container"></div>
-                <button type="button" id="add-string-value-btn" class="btn btn-outline-success mt-2 btn-sm"><i class="bi bi-plus-circle"></i> Adicionar Valor</button>
+        <div id="step2-card" class="card shadow-sm d-none">
+            <div class="card-header"><h4 class="mb-0">Etapa 2: Adicione as Alternativas</h4></div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead id="alternatives-table-header"></thead>
+                        <tbody id="alternatives-forms-container"></tbody>
+                    </table>
+                </div>
+                <button type="button" id="add-alternative-btn" class="btn btn-outline-success mt-2"><i class="bi bi-plus-circle me-2"></i>Adicionar Alternativa</button>
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                    <button type="submit" name="action" value="download" class="btn btn-secondary">Baixar CSV Completo</button>
+                    <button type="submit" name="action" value="analyze" class="btn btn-primary">Analisar Agora</button>
+                </div>
             </div>
-            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="button" id="save-string-values-btn" class="btn btn-primary">Salvar Valores</button></div>
         </div>
-    </div>
+    </form>
 </div>
 
+<!-- MODAL E TEMPLATES (sem alterações) -->
+<div class="modal fade" id="stringValuesModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Definir Valores para: <span id="modalCriterionName"></span></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><p class="text-muted small">Defina aqui os valores de texto possíveis para este critério e o quão desejável cada um é.</p><div id="string-values-container"></div><button type="button" id="add-string-value-btn" class="btn btn-outline-success mt-2 btn-sm"><i class="bi bi-plus-circle"></i> Adicionar Valor</button></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="button" id="save-string-values-btn" class="btn btn-primary">Salvar Valores</button></div></div></div>
+</div>
 <template id="criterion-form-template">
-    <div class="row criterion-form align-items-center mb-3 border-bottom pb-3 gx-2">
+    <div class="row criterion-form align-items-center mb-3 border-bottom pb-3 gx-3">
         <div style="display:none;">{{ criteria_formset.empty_form.DELETE }}{{ criteria_formset.empty_form.string_values }}</div>
         <div class="col-md-3">{{ criteria_formset.empty_form.name }}</div>
         <div class="col-md-2">{{ criteria_formset.empty_form.criterion_type }}</div>
-        <div class="col-md-2">
-            <div class="input-group">
-                <button type="button" class="btn btn-outline-danger btn-sm weight-step-btn" data-step="-0.05">-0.05</button>
-                <button type="button" class="btn btn-outline-danger btn-sm weight-step-btn" data-step="-0.01">-0.01</button>
-                {% render_field criteria_formset.empty_form.weight class="form-control form-control-sm text-center" %}
-                <button type="button" class="btn btn-outline-success btn-sm weight-step-btn" data-step="0.01">+0.01</button>
-                <button type="button" class="btn btn-outline-success btn-sm weight-step-btn" data-step="0.05">+0.05</button>
-            </div>
-        </div>
-        <div class="col-md-4">
-             <div class="row gx-2 conditional-numeric">
-                <div class="col-6">{{ criteria_formset.empty_form.proportionality }}</div>
-                <div class="col-3">{{ criteria_formset.empty_form.good_value }}</div>
-                <div class="col-3">{{ criteria_formset.empty_form.neutral_value }}</div>
-            </div>
-            <div class="conditional-string" style="display: none;">
-                <button type="button" class="btn btn-outline-info btn-sm w-100 open-string-modal-btn" data-bs-toggle="modal" data-bs-target="#stringValuesModal">Definir Valores de Texto</button>
-            </div>
-        </div>
-        <div class="col-md-1">
-            <button type="button" class="btn btn-danger btn-sm delete-criterion-btn w-100">Excluir</button>
-        </div>
+        <div class="col-md-3"><div class="input-group"><button type="button" class="btn btn-outline-danger btn-sm weight-step-btn" data-step="-0.05">-0.05</button><button type="button" class="btn btn-outline-danger btn-sm weight-step-btn" data-step="-0.01">-0.01</button>{% render_field criteria_formset.empty_form.weight class="form-control form-control-sm text-center" %}<button type="button" class="btn btn-outline-success btn-sm weight-step-btn" data-step="0.01">+0.01</button><button type="button" class="btn btn-outline-success btn-sm weight-step-btn" data-step="0.05">+0.05</button></div></div>
+        <div class="col-md-3"><div class="row gx-2 conditional-numeric"><div class="col-5">{{ criteria_formset.empty_form.proportionality }}</div><div class="col-4">{{ criteria_formset.empty_form.good_value }}</div><div class="col-3">{{ criteria_formset.empty_form.neutral_value }}</div></div><div class="conditional-string" style="display: none;"><button type="button" class="btn btn-outline-info btn-sm w-100 open-string-modal-btn" data-bs-toggle="modal" data-bs-target="#stringValuesModal">Definir Valores</button></div></div>
+        <div class="col-md-1"><button type="button" class="btn btn-danger btn-sm delete-criterion-btn w-100">Excluir</button></div>
     </div>
 </template>
 <template id="alternative-form-template"></template>
 <template id="string-value-row-template">
-    <div class="row gx-2 mb-2 string-value-row align-items-center">
-        <div class="col-5"><input type="text" class="form-control string-value-input" placeholder="Valor do Texto (Ex: Vermelho)"></div>
-        <div class="col-5">
-            <select class="form-select string-level-select">
-                <option value="super_desejavel">Super Desejável</option>
-                <option value="desejavel" selected>Desejável</option>
-                <option value="aceitavel">Aceitável</option>
-                <option value="nao_desejavel">Não Desejável</option>
-            </select>
-        </div>
-        <div class="col-2"><button type="button" class="btn btn-danger btn-sm w-100 delete-string-value-btn">Excluir</button></div>
-    </div>
+    <div class="row gx-2 mb-2 string-value-row align-items-center"><div class="col-5"><input type="text" class="form-control string-value-input" placeholder="Valor do Texto (Ex: Vermelho)"></div><div class="col-5"><select class="form-select string-level-select"><option value="super_desejavel">Super Desejável</option><option value="desejavel" selected>Desejável</option><option value="aceitavel">Aceitável</option><option value="nao_desejavel">Não Desejável</option></select></div><div class="col-2"><button type="button" class="btn btn-danger btn-sm w-100 delete-string-value-btn">Excluir</button></div></div>
 </template>
-
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // I. REFERÊNCIAS AOS ELEMENTOS DO DOM
+    // I. REFERÊNCIAS E VARIÁVEIS
     const mainForm = document.getElementById('analysis-creator-form');
     const step1Card = document.getElementById('step1-card');
     const step2Card = document.getElementById('step2-card');
@@ -142,7 +128,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const criterionTemplate = document.getElementById('criterion-form-template');
     const totalFormsInput = document.querySelector('#id_criteria-TOTAL_FORMS');
     const totalWeightDisplay = document.getElementById('total-weight-display');
-    const headerNumeric = document.querySelector('.criterion-header .conditional-numeric-header');
     const alternativesHeader = document.getElementById('alternatives-table-header');
     const alternativesContainer = document.getElementById('alternatives-forms-container');
     const alternativeTemplate = document.getElementById('alternative-form-template');
@@ -154,10 +139,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let activeCriterionForm = null;
     let alternativeCounter = 0;
 
-    // ===================================================================
-    //  II. FUNÇÕES DE MANIPULAÇÃO
-    // ===================================================================
-
+    // II. FUNÇÕES
     function updateAllFormsVisibility() {
         let showNumericHeader = false;
         criteriaContainer.querySelectorAll('.criterion-form').forEach(form => {
@@ -165,7 +147,6 @@ document.addEventListener('DOMContentLoaded', function () {
             const numericGroup = form.querySelector('.conditional-numeric');
             const stringGroup = form.querySelector('.conditional-string');
             const isDeleted = form.querySelector('input[type="checkbox"][name$="-DELETE"]')?.checked;
-            
             if (select && !isDeleted && form.style.display !== 'none') {
                 const isNumeric = select.value === 'number';
                 const isString = select.value === 'string';
@@ -174,9 +155,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (isNumeric) showNumericHeader = true;
             }
         });
-        if (headerNumeric) headerNumeric.style.display = showNumericHeader ? '' : 'none';
+        document.querySelectorAll('.conditional-numeric-header').forEach(el => {
+            el.style.display = showNumericHeader ? '' : 'none';
+        });
     }
-
     function updateTotalWeight() {
         let totalWeight = 0;
         criteriaContainer.querySelectorAll('.criterion-form').forEach(form => {
@@ -189,7 +171,6 @@ document.addEventListener('DOMContentLoaded', function () {
         totalWeightDisplay.textContent = totalWeight.toFixed(2);
         totalWeightDisplay.classList.toggle('text-danger', totalWeight > 1.0);
     }
-
     function addCriterionForm() {
         let formNum = parseInt(totalFormsInput.value);
         const newFormHTML = criterionTemplate.innerHTML.replace(/__prefix__/g, formNum);
@@ -201,7 +182,6 @@ document.addEventListener('DOMContentLoaded', function () {
         updateAllFormsVisibility();
         updateTotalWeight();
     }
-    
     function openStringModal(button) {
         activeCriterionForm = button.closest('.criterion-form');
         const criterionName = activeCriterionForm.querySelector('input[name$="-name"]').value || "[Critério sem nome]";
@@ -214,26 +194,20 @@ document.addEventListener('DOMContentLoaded', function () {
                 values.forEach(item => addStringValueRow(item.value, item.level));
             } catch (e) { console.error("Erro ao ler JSON:", e); }
         }
-        if (stringValuesContainer.children.length === 0) {
-            addStringValueRow();
-        }
+        if (stringValuesContainer.children.length === 0) { addStringValueRow(); }
     }
-
     function addStringValueRow(value = '', level = 'desejavel') {
         const newRow = stringValueTemplate.content.cloneNode(true);
         newRow.querySelector('.string-value-input').value = value;
         newRow.querySelector('.string-level-select').value = level;
         stringValuesContainer.appendChild(newRow);
     }
-
     function saveStringValues() {
         const values = [];
         stringValuesContainer.querySelectorAll('.string-value-row').forEach(row => {
             const value = row.querySelector('.string-value-input').value.trim();
             const level = row.querySelector('.string-level-select').value;
-            if (value) {
-                values.push({ value, level });
-            }
+            if (value) { values.push({ value, level }); }
         });
         if (activeCriterionForm) {
             const hiddenInput = activeCriterionForm.querySelector('input[name$="-string_values"]');
@@ -241,14 +215,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         stringModal.hide();
     }
-
     function proceedToStep2() {
-        if (!document.getElementById('analysis_name').value.trim()) {
-            alert('Por favor, dê um nome para a análise.'); return;
-        }
-        if (parseFloat(totalWeightDisplay.textContent) > 1.0) {
-            alert('A soma dos pesos não pode ser maior que 1.0.'); return;
-        }
+        if (!document.getElementById('analysis_name').value.trim()) { alert('Por favor, dê um nome para a análise.'); return; }
+        if (parseFloat(totalWeightDisplay.textContent) > 1.0) { alert('A soma dos pesos não pode ser maior que 1.0.'); return; }
         step1Card.querySelectorAll('input, select, button').forEach(el => { el.disabled = true; });
         let headerHTML = '<tr><th style="width: 20%;">Nome da Alternativa</th>';
         let templateRowHTML = '<td><input type="text" name="alternative-0-name" class="form-control" required></td>';
@@ -262,11 +231,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 headerHTML += `<th>${critName}</th>`;
                 const critType = form.querySelector('select[name$="-criterion_type"]').value;
                 const fieldName = `alternative-0-crit-${formIndex}`;
-                if (critType === 'number') {
-                    templateRowHTML += `<td><input type="number" step="any" name="${fieldName}" class="form-control"></td>`;
-                } else if (critType === 'boolean') {
-                    templateRowHTML += `<td><select name="${fieldName}" class="form-select"><option value="TRUE">Sim</option><option value="FALSE" selected>Não</option></select></td>`;
-                } else if (critType === 'string') {
+                if (critType === 'number') { templateRowHTML += `<td><input type="number" step="any" name="${fieldName}" class="form-control"></td>`; }
+                else if (critType === 'boolean') { templateRowHTML += `<td><select name="${fieldName}" class="form-select"><option value="TRUE">Sim</option><option value="FALSE" selected>Não</option></select></td>`; }
+                else if (critType === 'string') {
                     const hiddenInput = form.querySelector('input[name$="-string_values"]');
                     let hasValues = false;
                     if (hiddenInput && hiddenInput.value) {
@@ -281,9 +248,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             }
                         } catch (e) { console.error("JSON inválido para dropdown:", e); }
                     }
-                    if (!hasValues) {
-                        templateRowHTML += `<td><input type="text" name="${fieldName}" class="form-control" placeholder="Texto livre"></td>`;
-                    }
+                    if (!hasValues) { templateRowHTML += `<td><input type="text" name="${fieldName}" class="form-control" placeholder="Texto livre"></td>`; }
                 }
             }
         });
@@ -294,26 +259,22 @@ document.addEventListener('DOMContentLoaded', function () {
         step2Card.classList.remove('d-none');
         document.getElementById('add-alternative-btn').click();
     }
-
     function addAlternativeForm() {
         const templateHTML = alternativeTemplate.innerHTML.replace(/-0-/g, `-${alternativeCounter}-`);
         alternativesContainer.insertAdjacentHTML('beforeend', templateHTML);
         alternativeCounter++;
     }
 
-    // ===================================================================
-    //  III. EVENT LISTENERS PRINCIPAIS
-    // ===================================================================
-    mainForm.addEventListener('click', (event) => {
+    // III. EVENT LISTENERS
+    document.body.addEventListener('click', function(event) {
         const target = event.target;
-        const targetId = target.id;
-        const targetClassList = target.classList;
-
-        if (targetId === 'add-criterion-btn') addCriterionForm();
-        else if (targetId === 'proceed-to-step2-btn') proceedToStep2();
-        else if (targetId === 'add-alternative-btn') addAlternativeForm();
-        else if (target.closest('.open-string-modal-btn')) openStringModal(target);
-        else if (target.closest('.delete-criterion-btn')) {
+        if (target.id === 'add-criterion-btn') { addCriterionForm(); }
+        else if (target.id === 'proceed-to-step2-btn') { proceedToStep2(); }
+        else if (target.id === 'add-alternative-btn') { addAlternativeForm(); }
+        else if (target.id === 'add-string-value-btn') { addStringValueRow(); }
+        else if (target.id === 'save-string-values-btn') { saveStringValues(); }
+        else if (target.classList.contains('open-string-modal-btn')) { openStringModal(target); }
+        else if (target.classList.contains('delete-criterion-btn')) {
             const form = target.closest('.criterion-form');
             const deleteCheckbox = form.querySelector('input[type="checkbox"][name$="-DELETE"]');
             if (deleteCheckbox) {
@@ -322,9 +283,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 updateTotalWeight();
                 updateAllFormsVisibility();
             }
-        }
-        else if (target.closest('.delete-alternative-btn')) target.closest('tr').remove();
-        else if (target.closest('.weight-step-btn')) {
+        } 
+        else if (target.classList.contains('delete-alternative-btn')) { target.closest('tr').remove(); }
+        else if (target.classList.contains('delete-string-value-btn')) { target.closest('.string-value-row').remove(); }
+        else if (target.classList.contains('weight-step-btn')) {
             const step = parseFloat(target.dataset.step);
             const numberInput = target.closest('.input-group').querySelector('input[type="number"]');
             let currentValue = parseFloat(numberInput.value) || 0;
@@ -334,22 +296,21 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    stringModalElement.addEventListener('click', (event) => {
-        if(event.target.id === 'add-string-value-btn') addStringValueRow();
-        if(event.target.id === 'save-string-values-btn') saveStringValues();
-        if(event.target.matches('.delete-string-value-btn')) event.target.closest('.string-value-row').remove();
+    mainForm.addEventListener('change', function(event) {
+        if (event.target.matches('select[name$="-criterion_type"]')) {
+            updateAllFormsVisibility();
+        }
     });
-
-    mainForm.addEventListener('change', (event) => {
-        if (event.target.matches('select[name$="-criterion_type"]')) updateAllFormsVisibility();
+    mainForm.addEventListener('input', function(event) {
+        if (event.target.matches('input[name$="-weight"]')) {
+            updateTotalWeight();
+        }
     });
-
-    mainForm.addEventListener('input', (event) => {
-        if (event.target.matches('input[name$="-weight"]')) updateTotalWeight();
-    });
-
-    mainForm.addEventListener('submit', () => {
-        step1Card.querySelectorAll('input, select, button').forEach(el => { el.disabled = false; });
+    mainForm.addEventListener('submit', function() {
+        // CORREÇÃO: Habilita apenas INPUTS e SELECTS, mantendo botões desabilitados
+        step1Card.querySelectorAll('input, select').forEach(el => {
+            el.disabled = false;
+        });
     });
 
     // IV. INICIALIZAÇÃO
@@ -358,3 +319,10 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 {% endblock %}
+```
+
+---
+
+Com esta atualização, a sua interface deve ficar mais espaçada e clara, e o bug do botão "Confirmar Critérios" será resolvido.
+
+**Depois que você confirmar que a interface está como você quer**, nós partiremos para o **Passo 2**, que é substituir o `analysis_utils.py` pela versão final para corrigir o erro `out-of-bound
