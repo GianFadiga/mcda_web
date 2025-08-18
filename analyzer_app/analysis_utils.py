@@ -61,7 +61,7 @@ class DataAnalyzer:
             is_data_row = any(first_line.upper().startswith(kw) for kw in config_keywords)
             
             header_option = None if is_data_row else 0
-            self.df = pd.read_csv(self.file_path, sep=separator, skipinitialspace=True, header=header_option, encoding='utf-8', on_bad_lines='ignore')
+            self.df = pd.read_csv(self.file_path, sep=separator, skipinitialspace=True, header=header_option, encoding='utf-8', on_bad_lines='error')
             
             if is_data_row:
                 self.df.columns = [f'Coluna_{i+1}' for i in range(len(self.df.columns))]
