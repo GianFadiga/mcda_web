@@ -8,170 +8,98 @@
 <div class="container my-4">
     <form method="post" id="analysis-creator-form">
         {% csrf_token %}
-
         <div id="step1-card" class="card shadow-sm mb-4">
             <div class="card-header"><h4 class="mb-0">Etapa 1: Nome e Critérios da Análise</h4></div>
             <div class="card-body">
-                <div class="mb-4">
-                    <label for="analysis_name" class="form-label fw-bold">Nome da Análise</label>
-                    <input type="text" name="analysis_name" id="analysis_name" class="form-control" placeholder="Ex: Escolha de novo carro" required>
-                </div>
-
-                <div class="row criterion-header fw-bold mb-2 d-none d-md-flex gx-2">
-                    <div class="col-md-3">Nome do Critério</div>
-                    <div class="col-md-2">Tipo</div>
-                    <div class="col-md-2">Importância (Peso)</div>
-                    <div class="col-md-4 conditional-numeric-header">
-                        <div class="row gx-2">
-                            <div class="col-6">Preferência</div>
-                            <div class="col-3">Bom</div>
-                            <div class="col-3">Neutro</div>
-                        </div>
-                    </div>
-                    <div class="col-md-1">Ação</div>
-                </div>
-
                 {{ criteria_formset.management_form }}
                 <div id="criteria-forms-container">
                     {% for form in criteria_formset %}
                     <div class="row criterion-form align-items-center mb-3 border-bottom pb-3 gx-2">
-                        <div style="display:none;">{{ form.DELETE }}</div>
+                        <div style="display:none;">{{ form.DELETE }}{{ form.string_values }}</div>
                         <div class="col-md-3">{{ form.name }}</div>
                         <div class="col-md-2">{{ form.criterion_type }}</div>
-                        <div class="col-md-2">{{ form.weight }}</div>
-                        <div class="col-md-4 conditional-numeric">
-                            <div class="row gx-2">
-                                <div class="col-6">{{ form.proportionality }}</div>
-                                <div class="col-3">{{ form.good_value }}</div>
-                                <div class="col-3">{{ form.neutral_value }}</div>
+                        
+                        <div class="col-md-3">
+                            <div class="input-group">
+                                <button type="button" class="btn btn-outline-danger btn-sm weight-step-btn" data-step="-0.05">-0.05</button>
+                                <button type="button" class="btn btn-outline-danger btn-sm weight-step-btn" data-step="-0.01">-0.01</button>
+                                {% render_field form.weight class="form-control form-control-sm text-center" %}
+                                <button type="button" class="btn btn-outline-success btn-sm weight-step-btn" data-step="0.01">+0.01</button>
+                                <button type="button" class="btn btn-outline-success btn-sm weight-step-btn" data-step="0.05">+0.05</button>
                             </div>
                         </div>
+                        
+                        <div class="col-md-3 conditional-numeric">
+                            </div>
                         <div class="col-md-1">
                             <button type="button" class="btn btn-danger btn-sm delete-criterion-btn w-100">Excluir</button>
                         </div>
                     </div>
                     {% endfor %}
                 </div>
-                <button type="button" id="add-criterion-btn" class="btn btn-outline-success mt-2">
-                    <i class="bi bi-plus-circle me-2"></i>Adicionar Critério
-                </button>
-                <div class="mt-3 text-end">
-                    <strong>Soma dos Pesos: </strong>
-                    <span id="total-weight-display" class="fw-bold">0.00</span> / 1.00
                 </div>
-                <div class="text-center mt-4">
-                    <button type="button" id="proceed-to-step2-btn" class="btn btn-lg btn-info text-white">Confirmar Critérios e Adicionar Alternativas</button>
-                </div>
-            </div>
         </div>
-
-        <div id="step2-card" class="card shadow-sm d-none">
-            <div class="card-header"><h4 class="mb-0">Etapa 2: Adicione as Alternativas</h4></div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-bordered">
-                        <thead id="alternatives-table-header"></thead>
-                        <tbody id="alternatives-forms-container"></tbody>
-                    </table>
-                </div>
-                <button type="button" id="add-alternative-btn" class="btn btn-outline-success mt-2">
-                    <i class="bi bi-plus-circle me-2"></i>Adicionar Alternativa
-                </button>
-                <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
-                    <button type="submit" name="action" value="download" class="btn btn-secondary">Baixar CSV Completo</button>
-                    <button type="submit" name="action" value="analyze" class="btn btn-primary">Analisar Agora</button>
-                </div>
-            </div>
-        </div>
-    </form>
+        </form>
 </div>
 
 <template id="criterion-form-template">
     <div class="row criterion-form align-items-center mb-3 border-bottom pb-3 gx-2">
-        <div style="display:none;">{{ criteria_formset.empty_form.DELETE }}</div>
+        <div style="display:none;">{{ criteria_formset.empty_form.DELETE }}{{ criteria_formset.empty_form.string_values }}</div>
         <div class="col-md-3">{{ criteria_formset.empty_form.name }}</div>
         <div class="col-md-2">{{ criteria_formset.empty_form.criterion_type }}</div>
-        <div class="col-md-2">{{ criteria_formset.empty_form.weight }}</div>
-        <div class="col-md-4 conditional-numeric">
-            <div class="row gx-2">
-                <div class="col-6">{{ criteria_formset.empty_form.proportionality }}</div>
-                <div class="col-3">{{ criteria_formset.empty_form.good_value }}</div>
-                <div class="col-3">{{ criteria_formset.empty_form.neutral_value }}</div>
+
+        <div class="col-md-3">
+            <div class="input-group">
+                <button type="button" class="btn btn-outline-danger btn-sm weight-step-btn" data-step="-0.05">-0.05</button>
+                <button type="button" class="btn btn-outline-danger btn-sm weight-step-btn" data-step="-0.01">-0.01</button>
+                {% render_field criteria_formset.empty_form.weight class="form-control form-control-sm text-center" %}
+                <button type="button" class="btn btn-outline-success btn-sm weight-step-btn" data-step="0.01">+0.01</button>
+                <button type="button" class="btn btn-outline-success btn-sm weight-step-btn" data-step="0.05">+0.05</button>
             </div>
         </div>
+        
+        <div class="col-md-3 conditional-numeric">
+            </div>
         <div class="col-md-1">
             <button type="button" class="btn btn-danger btn-sm delete-criterion-btn w-100">Excluir</button>
         </div>
     </div>
 </template>
-<template id="alternative-form-template"></template>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // --- REFERÊNCIAS AOS ELEMENTOS ---
+    // ===================================================================
+    //  I. REFERÊNCIAS AOS ELEMENTOS DO DOM
+    // ===================================================================
     const mainForm = document.getElementById('analysis-creator-form');
     const step1Card = document.getElementById('step1-card');
     const step2Card = document.getElementById('step2-card');
-    const proceedBtn = document.getElementById('proceed-to-step2-btn');
     
-    // Elementos da Etapa 1
-    const addCriterionBtn = document.getElementById('add-criterion-btn');
+    // --- Etapa 1 ---
     const criteriaContainer = document.getElementById('criteria-forms-container');
     const criterionTemplate = document.getElementById('criterion-form-template');
     const totalFormsInput = document.querySelector('#id_criteria-TOTAL_FORMS');
     const totalWeightDisplay = document.getElementById('total-weight-display');
     const headerNumeric = document.querySelector('.criterion-header .conditional-numeric-header');
 
-    // Elementos da Etapa 2
+    // --- Etapa 2 ---
     const alternativesHeader = document.getElementById('alternatives-table-header');
     const alternativesContainer = document.getElementById('alternatives-forms-container');
-    const addAlternativeBtn = document.getElementById('add-alternative-btn');
     const alternativeTemplate = document.getElementById('alternative-form-template');
     let alternativeCounter = 0;
 
-    // --- LÓGICA DE EVENTOS ---
-    step1Card.addEventListener('change', function(event) {
-        if (event.target.matches('select[name$="-criterion_type"]')) {
-            updateAllFormsVisibility();
-        }
-        if (event.target.matches('input[name$="-weight"]')) {
-            updateTotalWeight();
-        }
-    });
+    // ===================================================================
+    //  II. FUNÇÕES DE MANIPULAÇÃO
+    // ===================================================================
 
-    step1Card.addEventListener('click', function(event) {
-        if (event.target.classList.contains('delete-criterion-btn')) {
-            handleDeleteClick(event.target);
-        }
-    });
-
-    addCriterionBtn.addEventListener('click', addCriterionForm);
-    proceedBtn.addEventListener('click', proceedToStep2);
-    addAlternativeBtn.addEventListener('click', addAlternativeForm);
-
-    alternativesContainer.addEventListener('click', function(event) {
-        if (event.target.classList.contains('delete-alternative-btn')) {
-            event.target.closest('tr').remove();
-        }
-    });
-    
-    // <<--- INÍCIO DA CORREÇÃO --- >>
-    // Adiciona um listener para o evento de SUBMISSÃO do formulário
-    mainForm.addEventListener('submit', function() {
-        // Re-habilita todos os campos da Etapa 1 antes de enviar
-        step1Card.querySelectorAll('input, select, button').forEach(el => {
-            el.disabled = false;
-        });
-    });
-    // <<--- FIM DA CORREÇÃO --- >>
-
-    // --- FUNÇÕES ---
+    // --- Funções da Etapa 1 ---
     function updateAllFormsVisibility() {
         let showNumericHeader = false;
         criteriaContainer.querySelectorAll('.criterion-form').forEach(form => {
             const select = form.querySelector('select[name$="-criterion_type"]');
             const numericGroup = form.querySelector('.conditional-numeric');
             const isDeleted = form.querySelector('input[type="checkbox"][name$="-DELETE"]')?.checked;
+            
             if (select && !isDeleted && form.style.display !== 'none') {
                 const show = select.value === 'number';
                 numericGroup.style.display = show ? '' : 'none';
@@ -193,17 +121,6 @@ document.addEventListener('DOMContentLoaded', function () {
         totalWeightDisplay.textContent = totalWeight.toFixed(2);
         totalWeightDisplay.classList.toggle('text-danger', totalWeight > 1.0);
     }
-    
-    function handleDeleteClick(button) {
-        const form = button.closest('.criterion-form');
-        const deleteCheckbox = form.querySelector('input[type="checkbox"][name$="-DELETE"]');
-        if (deleteCheckbox) {
-            deleteCheckbox.checked = true;
-            form.style.display = 'none';
-            updateTotalWeight();
-            updateAllFormsVisibility();
-        }
-    }
 
     function addCriterionForm() {
         let formNum = parseInt(totalFormsInput.value);
@@ -214,8 +131,10 @@ document.addEventListener('DOMContentLoaded', function () {
         criteriaContainer.appendChild(newFormElement);
         totalFormsInput.value = formNum + 1;
         updateAllFormsVisibility();
+        updateTotalWeight();
     }
     
+    // --- Funções da Etapa 2 ---
     function proceedToStep2() {
         if (!document.getElementById('analysis_name').value) {
             alert('Por favor, dê um nome para a análise.'); return;
@@ -230,13 +149,17 @@ document.addEventListener('DOMContentLoaded', function () {
         let templateRowHTML = '<td><input type="text" name="alternative-0-name" class="form-control" required></td>';
         
         criteriaContainer.querySelectorAll('.criterion-form').forEach(form => {
-            const formIndex = form.querySelector('input[name$="-name"]').name.match(/criteria-(\d+)-name/)[1];
+            const formIndexMatch = form.querySelector('input[name$="-name"]').name.match(/criteria-(\d+)-name/);
+            if (!formIndexMatch) return;
+            const formIndex = formIndexMatch[1];
+
             const isDeleted = form.querySelector('input[type="checkbox"][name$="-DELETE"]')?.checked;
             if (form.style.display !== 'none' && !isDeleted) {
                 const critName = form.querySelector('input[name$="-name"]').value;
                 headerHTML += `<th>${critName}</th>`;
                 const critType = form.querySelector('select[name$="-criterion_type"]').value;
                 const fieldName = `alternative-0-crit-${formIndex}`;
+                
                 if (critType === 'number') templateRowHTML += `<td><input type="number" step="any" name="${fieldName}" class="form-control"></td>`;
                 else if (critType === 'boolean') templateRowHTML += `<td><select name="${fieldName}" class="form-select"><option value="TRUE">Sim</option><option value="FALSE" selected>Não</option></select></td>`;
                 else templateRowHTML += `<td><input type="text" name="${fieldName}" class="form-control"></td>`;
@@ -249,7 +172,7 @@ document.addEventListener('DOMContentLoaded', function () {
         alternativeTemplate.innerHTML = `<tr>${templateRowHTML}</tr>`;
         
         step2Card.classList.remove('d-none');
-        addAlternativeBtn.click();
+        document.getElementById('add-alternative-btn').click();
     }
 
     function addAlternativeForm() {
@@ -258,7 +181,63 @@ document.addEventListener('DOMContentLoaded', function () {
         alternativeCounter++;
     }
 
-    // Inicialização da página
+    // ===================================================================
+    //  III. EVENT LISTENERS PRINCIPAIS (USANDO DELEGAÇÃO)
+    // ===================================================================
+    mainForm.addEventListener('click', function(event) {
+        const target = event.target;
+        if (target.id === 'add-criterion-btn') addCriterionForm();
+        if (target.id === 'proceed-to-step2-btn') proceedToStep2();
+        if (target.id === 'add-alternative-btn') addAlternativeForm();
+        
+        if (target.classList.contains('delete-criterion-btn')) {
+            const form = target.closest('.criterion-form');
+            const deleteCheckbox = form.querySelector('input[type="checkbox"][name$="-DELETE"]');
+            if (deleteCheckbox) {
+                deleteCheckbox.checked = true;
+                form.style.display = 'none';
+                updateTotalWeight();
+                updateAllFormsVisibility();
+            }
+        }
+        
+        if (target.classList.contains('delete-alternative-btn')) {
+            target.closest('tr').remove();
+        }
+
+        if (target.classList.contains('weight-step-btn')) {
+            const step = parseFloat(target.dataset.step);
+            const inputGroup = target.closest('.input-group');
+            const numberInput = inputGroup.querySelector('input[type="number"]');
+            let currentValue = parseFloat(numberInput.value) || 0;
+            let newValue = currentValue + step;
+            newValue = Math.max(0.01, Math.min(1.0, newValue));
+            numberInput.value = newValue.toFixed(2);
+            numberInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+    });
+
+    mainForm.addEventListener('change', function(event) {
+        if (event.target.matches('select[name$="-criterion_type"]')) {
+            updateAllFormsVisibility();
+        }
+    });
+
+    mainForm.addEventListener('input', function(event) {
+        if (event.target.matches('input[name$="-weight"]')) {
+            updateTotalWeight();
+        }
+    });
+
+    mainForm.addEventListener('submit', function() {
+        step1Card.querySelectorAll('input, select, button').forEach(el => {
+            el.disabled = false;
+        });
+    });
+
+    // ===================================================================
+    //  IV. INICIALIZAÇÃO DA PÁGINA
+    // ===================================================================
     updateAllFormsVisibility();
     updateTotalWeight();
 });
