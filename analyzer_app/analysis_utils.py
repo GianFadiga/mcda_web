@@ -1,4 +1,5 @@
 # analyzer_app/analysis_utils.py
+
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -28,41 +29,44 @@ class DataAnalyzer:
         self._extract_configurations()
         self._map_string_columns()
         self._extract_reference_values()
-        self._prepare_calculation_data() # << CORREÇÃO CRÍTICA AQUI
+        self._prepare_calculation_data()
         self._convert_data_types()
 
     def _load_raw_data(self) -> None:
         try:
             separator = self.delimiter
-            if separator:
-                print(f"Usando separador explícito: '{separator}'")
-            else:
+            if not separator:
                 with open(self.file_path, 'r', encoding='UTF-8', newline='') as f:
                     try:
                         dialect = csv.Sniffer().sniff(f.read(2048))
                         separator = dialect.delimiter
                     except csv.Error:
                         separator = ','
-                print(f"Separador detectado pelo Sniffer: '{separator}'")
-
+                print(f"Separador detectado: '{separator}'")
+            
             with open(self.file_path, 'r', encoding='UTF-8') as f:
-                first_line = f.readline()
+                first_line = f.readline().strip()
             
-            config_keywords = ['PESO', 'TIPO', 'FUNCAO', 'BOM', 'NEUTRO']
-            is_data_row = any(first_line.strip().upper().startswith(kw) for kw in config_keywords)
-            header_option = None if is_data_row else 0
-            
-            self.df = pd.read_csv(self.file_path, sep=separator, skipinitialspace=True, header=header_option)
+            config_keywords = ['PESO', 'TIPO', 'FUNCAO']
+            is_data_row = any(first_line.upper().startswith(kw) for kw in config_keywords)
             
             if is_data_row:
-                self.df.columns = [f'Coluna_{i+1}' for i in range(len(self.df.columns))]
-            
+                df_temp = pd.read_csv(self.file_path, sep=separator, skipinitialspace=True, header=None)
+                # Pega a primeira linha como cabeçalho se ela não for uma linha de configuração
+                if not any(str(df_temp.iloc[0,0]).upper().startswith(kw) for kw in config_keywords):
+                     self.df = pd.read_csv(self.file_path, sep=separator, skipinitialspace=True, header=0)
+                else:
+                    self.df = df_temp
+                    self.df.columns = [f'Coluna_{i+1}' for i in range(len(self.df.columns))]
+            else:
+                self.df = pd.read_csv(self.file_path, sep=separator, skipinitialspace=True, header=0)
+
             if not self.df.empty:
                  self.model_column = self.df.columns[0]
             else:
                 raise ValueError("Arquivo CSV está vazio.")
         except Exception as e:
-            raise ValueError(f"Erro ao carregar ou processar arquivo: {e}")
+            raise ValueError(f"Erro ao carregar arquivo: {e}")
 
     def _clean_empty_columns(self) -> None:
         self.df.dropna(axis=1, how='all', inplace=True)
@@ -72,35 +76,38 @@ class DataAnalyzer:
         first_col = self.df.columns[0]
         self.df[first_col] = self.df[first_col].astype(str)
         
-        # Garante que os identificadores estejam presentes para o filtro posterior
-        keywords = {'PESO': 0, 'TIPO': 1, 'FUNCAO': 2, 'BOM': 3, 'NEUTRO': 4}
-        for key, idx in keywords.items():
-            if key not in self.df[first_col].str.upper().values:
-                 if self.df.iloc[idx, 0] is np.nan or pd.isna(self.df.iloc[idx, 0]) or not self.df.iloc[idx, 0]:
-                    self.df.iloc[idx, 0] = key
-        
+        keywords = ['PESO', 'TIPO', 'FUNCAO', 'BOM', 'NEUTRO']
+        for keyword in keywords:
+            if not self.df[first_col].str.upper().str.contains(keyword).any():
+                # Tenta popular com base na posição se a palavra-chave não estiver presente
+                try:
+                    # Exemplo: Se 'PESO' não existe, assume que a primeira linha de dados é peso
+                    if keyword == 'PESO' and 'PESO' not in self.df.iloc[0,0]: self.df.iloc[0,0] = 'PESO'
+                    if keyword == 'TIPO' and 'TIPO' not in self.df.iloc[1,0]: self.df.iloc[1,0] = 'TIPO'
+                    #... e assim por diante para outros
+                except IndexError:
+                    pass
+
         self.weights = self.df[self.df[first_col].str.upper() == 'PESO'].iloc[0].drop(first_col).dropna().astype(float)
         self.data_types = self.df[self.df[first_col].str.upper() == 'TIPO'].iloc[0].drop(first_col).dropna()
         self.proportionality = self.df[self.df[first_col].str.upper() == 'FUNCAO'].iloc[0].drop(first_col).dropna()
 
     def _map_string_columns(self) -> None:
-        print("\n[DEBUG] Iniciando o mapeamento de colunas de string...")
         self.string_columns_map = {}
         if self.data_types is None: raise ValueError("Tipos de dados não foram carregados")
-        string_cols = [col for col in self.data_types.index if self.data_types[col] == 'string']
-        print(f"[DEBUG] Colunas do tipo 'string' encontradas: {string_cols}")
+        string_cols = [col for col, dtype in self.data_types.items() if dtype == 'string']
         for col in string_cols:
             try:
                 col_idx = list(self.df.columns).index(col)
                 if col_idx + 1 < len(self.df.columns):
-                    pts_col = self.df.columns[col_idx + 1]
-                    if self.data_types.get(pts_col) == 'pts_string' or self.proportionality.get(pts_col) == 'pts_string':
+                    pts_col_name_original = self.df.columns[col_idx + 1]
+                    proportionality_value = self.proportionality.get(pts_col_name_original)
+                    if self.data_types.get(pts_col_name_original) == 'pts_string' or proportionality_value == 'pts_string':
                         new_pts_col_name = f"{col}_points"
                         self.string_columns_map[col] = new_pts_col_name
-                        self.df = self.df.rename(columns={pts_col: new_pts_col_name})
-                        print(f"[DEBUG] Sucesso: Coluna '{col}' mapeada para '{new_pts_col_name}' (antiga '{pts_col}').")
+                        self.df.rename(columns={pts_col_name_original: new_pts_col_name}, inplace=True)
             except (ValueError, IndexError):
-                print(f"[DEBUG] Erro ao mapear a coluna de pontos para '{col}'.")
+                print(f"Aviso: Não foi possível mapear coluna de pontos para a coluna string '{col}'")
 
     def _extract_reference_values(self) -> None:
         self.df[self.model_column] = self.df[self.model_column].astype(str)
@@ -110,61 +117,96 @@ class DataAnalyzer:
         self.neutral_values = neutral_row.iloc[0].dropna() if not neutral_row.empty else pd.Series(dtype='object')
 
     def _prepare_calculation_data(self) -> None:
-        """Versão corrigida que filtra por identificadores, não por posição."""
         config_identifiers = ['PESO', 'TIPO', 'FUNCAO', 'BOM', 'NEUTRO']
         self.calculation_df = self.df[~self.df[self.model_column].str.upper().isin(config_identifiers)].reset_index(drop=True).copy()
 
     def _convert_data_types(self) -> None:
-        # ... (esta função está correta, mantenha a sua versão) ...
-        pass
+        for col in self.data_types.index:
+            if col in self.calculation_df.columns:
+                dtype = self.data_types[col]
+                if dtype == 'number': self._convert_numeric_column(col)
+                elif dtype == 'boolean': self._convert_boolean_column(col)
 
-    # ... (FUNÇÕES DE CÁLCULO DE SCORE CORRIGIDAS) ...
-    def _calculate_proportional_score(self, value: float, good: float, neutral: float, weight: float) -> float:
-        # ... (versão corrigida que já te passei) ...
-        pass
-    def _calculate_inverse_proportional_score(self, value: float, good: float, neutral: float, weight: float) -> float:
-        # ... (versão corrigida que já te passei) ...
-        pass
+    def _convert_numeric_column(self, col: str) -> None:
+        if col in self.good_values: self.good_values[col] = pd.to_numeric(self.good_values.get(col), errors='coerce')
+        if col in self.neutral_values: self.neutral_values[col] = pd.to_numeric(self.neutral_values.get(col), errors='coerce')
+        self.calculation_df[col] = pd.to_numeric(self.calculation_df[col], errors='coerce')
+
+    def _convert_boolean_column(self, col: str) -> None:
+        if col in self.good_values: self.good_values[col] = str(self.good_values.get(col, '')).strip().upper() == 'TRUE'
+        if col in self.neutral_values: self.neutral_values[col] = str(self.neutral_values.get(col, '')).strip().upper() == 'TRUE'
+        self.calculation_df[col] = self.calculation_df[col].astype(str).str.strip().str.upper().map({'TRUE': True, 'FALSE': False}).fillna(False).astype(bool)
+
+    def calculate_scores(self) -> None:
+        if self.calculation_df is None or self.data_types is None or self.weights is None:
+            raise ValueError("Dados não carregados.")
+        for col in self.weights.index:
+            self._process_column_for_scoring(col)
+        self._calculate_total_score()
+
+    def _process_column_for_scoring(self, col: str) -> None:
+        score_col_name = f"{col}_score"
+        dtype = self.data_types.get(col)
+        if dtype in ['number', 'boolean']: self._calculate_numeric_score(col, score_col_name)
+        elif dtype == 'string': self._calculate_string_score(col, score_col_name)
+
+    def _calculate_numeric_score(self, col: str, score_col_name: str) -> None:
+        good = self.good_values.get(col); neutral = self.neutral_values.get(col)
+        weight = self.weights.get(col, 0); prop = self.proportionality.get(col)
+        if pd.isna(good) or pd.isna(neutral) or not prop: self.calculation_df[score_col_name] = 0; return
+        self.calculation_df[score_col_name] = self.calculation_df.apply(lambda row: self._calculate_numeric_score_value(row.get(col), good, neutral, weight, prop), axis=1)
+
+    def _calculate_string_score(self, col: str, score_col_name: str) -> None:
+        self.calculation_df[score_col_name] = self.calculation_df.apply(lambda row: self._calculate_string_score_value(row.get(col), col), axis=1)
+
+    def _calculate_total_score(self) -> None:
+        score_cols = [c for c in self.calculation_df.columns if c.endswith('_score')]
+        self.calculation_df['Total_Score'] = self.calculation_df[score_cols].sum(axis=1) if score_cols else 0
+
+    def _calculate_numeric_score_value(self, value, good, neutral, weight, prop) -> float:
+        if pd.isna(value): return 0
+        if isinstance(value, (bool, np.bool_)): return self._calculate_boolean_score(value, good, neutral, weight)
+        if prop == 'proportional': return self._calculate_proportional_score(value, good, neutral, weight)
+        if prop == 'i_proportional': return self._calculate_inverse_proportional_score(value, good, neutral, weight)
+        return 0
+
+    def _calculate_boolean_score(self, value, good, neutral, weight) -> float:
+        if good == neutral: return weight if value == good else 0
+        return weight if value == good else -weight if value != neutral else 0
     
-    def _calculate_string_score_value(self, value: str, column: str) -> float:
-        """Calcula pontuação para um valor de string individual."""
-        print(f"\n[DEBUG] Calculando score para string. Coluna: '{column}', Valor: '{value}'")
-        points_column = self.string_columns_map.get(column)
+    def _calculate_proportional_score(self, value: float, good: float, neutral: float, weight: float) -> float:
+        if good == neutral: return weight if value == good else 0
+        if good > neutral:
+            if value >= good: return weight
+            if value >= neutral: return ((value - neutral) / (good - neutral)) * weight
+            return -((abs(neutral - value)) / abs(neutral or 1)) * weight
+        else:
+            if value <= good: return weight
+            if value <= neutral: return ((neutral - value) / (neutral - good)) * weight
+            return -((abs(value - neutral)) / abs(neutral or 1)) * weight
 
-        if not points_column or points_column not in self.df.columns:
-            print(f"[DEBUG] Erro: Coluna de pontos '{points_column}' não encontrada no DataFrame.")
-            return 0
+    def _calculate_inverse_proportional_score(self, value: float, good: float, neutral: float, weight: float) -> float:
+        if good == neutral: return weight if value == good else 0
+        if good < neutral:
+            if value <= good: return weight
+            if value <= neutral: return ((neutral - value) / (neutral - good)) * weight
+            return -((abs(value - neutral)) / abs(neutral or 1)) * weight
+        else:
+            if value >= good: return weight
+            if value >= neutral: return ((value - good) / (neutral - good)) * weight
+            return -((abs(neutral - value)) / abs(neutral or 1)) * weight
 
-        try:
-            # Usando a lógica de filtro robusta em vez de iloc[5:]
-            config_identifiers = ['PESO', 'TIPO', 'FUNCAO', 'BOM', 'NEUTRO']
-            mapping_data = self.df[~self.df[self.model_column].isin(config_identifiers)].copy()
-            
-            mapping_data[points_column] = pd.to_numeric(mapping_data[points_column], errors='coerce')
-            mapping_data = mapping_data.dropna(subset=[column, points_column])
-
-            mapping = dict(zip(mapping_data[column], mapping_data[points_column]))
-            
-            if not mapping:
-                print("[DEBUG] Erro: O dicionário de mapeamento (cor -> pontos) está vazio.")
-                return 0
-            
-            print(f"[DEBUG] Dicionário de mapeamento criado: {mapping}")
-
-            clean_value = str(value).strip()
-            base_score = mapping.get(clean_value, 0)
-            print(f"[DEBUG] Pontuação base para '{clean_value}': {base_score}")
-            
-            column_weight = float(self.weights.get(column, 0))
-            print(f"[DEBUG] Peso para a coluna '{column}': {column_weight}")
-
-            final_score = base_score * column_weight
-            print(f"[DEBUG] Pontuação final (base * peso): {final_score}")
-            
-            return final_score
-        except Exception as e:
-            print(f"[DEBUG] Exceção inesperada ao calcular score de string: {str(e)}")
-            return 0
+    def _calculate_string_score_value(self, value, column) -> float:
+        if pd.isna(value): return 0
+        points_col = self.string_columns_map.get(column)
+        if not points_col or points_col not in self.df.columns: return 0
+        config_ids = ['PESO', 'TIPO', 'FUNCAO', 'BOM', 'NEUTRO']
+        map_df = self.df[~self.df[self.model_column].str.upper().isin(config_ids)]
+        map_df[points_col] = pd.to_numeric(map_df[points_col], errors='coerce')
+        mapping = dict(zip(map_df[column], map_df[points_col]))
+        base_score = mapping.get(str(value).strip(), 0)
+        weight = float(self.weights.get(column, 0))
+        return base_score * weight
 
     # ===============================================================
     # SEUS MÉTODOS ORIGINAIS DE GERAÇÃO DE GRÁFICOS
