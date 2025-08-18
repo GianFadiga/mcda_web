@@ -8,6 +8,7 @@
 <div class="container my-4">
     <form method="post" id="analysis-creator-form">
         {% csrf_token %}
+
         <div id="step1-card" class="card shadow-sm mb-4">
             <div class="card-header"><h4 class="mb-0">Etapa 1: Nome e Critérios da Análise</h4></div>
             <div class="card-body">
@@ -15,13 +16,16 @@
                     <label for="analysis_name" class="form-label fw-bold">Nome da Análise</label>
                     <input type="text" name="analysis_name" id="analysis_name" class="form-control" placeholder="Ex: Escolha de novo carro" required>
                 </div>
+
                 <div class="row criterion-header fw-bold mb-2 d-none d-md-flex gx-2">
                     <div class="col-md-3">Nome do Critério</div>
                     <div class="col-md-2">Tipo</div>
-                    <div class="col-md-3">Importância (Peso)</div> <div class="col-md-3 conditional-numeric-header"> <div class="row">
-                            <div class="col-5">Preferência</div>
+                    <div class="col-md-2">Importância (Peso)</div>
+                    <div class="col-md-4 conditional-numeric-header">
+                        <div class="row gx-2">
+                            <div class="col-6">Preferência</div>
                             <div class="col-3">Bom</div>
-                            <div class="col-4">Neutro</div>
+                            <div class="col-3">Neutro</div>
                         </div>
                     </div>
                     <div class="col-md-1">Ação</div>
@@ -31,22 +35,15 @@
                 <div id="criteria-forms-container">
                     {% for form in criteria_formset %}
                     <div class="row criterion-form align-items-center mb-3 border-bottom pb-3 gx-2">
-                        <div style="display:none;">{{ form.DELETE }}{{ form.string_values }}</div>
+                        <div style="display:none;">{{ form.DELETE }}</div>
                         <div class="col-md-3">{{ form.name }}</div>
                         <div class="col-md-2">{{ form.criterion_type }}</div>
-                        
-                        <div class="col-md-3">
-                            <div class="d-flex align-items-center">
-                                <input type="range" class="form-range w-75" min="0.01" max="1.0" step="0.01" value="{{ form.weight.value|default:'0.25' }}">
-                                {% render_field form.weight class="form-control form-control-sm w-25 ms-2" %}
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-3 conditional-numeric">
+                        <div class="col-md-2">{{ form.weight }}</div>
+                        <div class="col-md-4 conditional-numeric">
                             <div class="row gx-2">
-                                <div class="col-5">{{ form.proportionality }}</div>
+                                <div class="col-6">{{ form.proportionality }}</div>
                                 <div class="col-3">{{ form.good_value }}</div>
-                                <div class="col-4">{{ form.neutral_value }}</div>
+                                <div class="col-3">{{ form.neutral_value }}</div>
                             </div>
                         </div>
                         <div class="col-md-1">
@@ -69,28 +66,37 @@
         </div>
 
         <div id="step2-card" class="card shadow-sm d-none">
+            <div class="card-header"><h4 class="mb-0">Etapa 2: Adicione as Alternativas</h4></div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead id="alternatives-table-header"></thead>
+                        <tbody id="alternatives-forms-container"></tbody>
+                    </table>
+                </div>
+                <button type="button" id="add-alternative-btn" class="btn btn-outline-success mt-2">
+                    <i class="bi bi-plus-circle me-2"></i>Adicionar Alternativa
+                </button>
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                    <button type="submit" name="action" value="download" class="btn btn-secondary">Baixar CSV Completo</button>
+                    <button type="submit" name="action" value="analyze" class="btn btn-primary">Analisar Agora</button>
+                </div>
             </div>
+        </div>
     </form>
 </div>
 
 <template id="criterion-form-template">
     <div class="row criterion-form align-items-center mb-3 border-bottom pb-3 gx-2">
-        <div style="display:none;">{{ criteria_formset.empty_form.DELETE }}{{ criteria_formset.empty_form.string_values }}</div>
+        <div style="display:none;">{{ criteria_formset.empty_form.DELETE }}</div>
         <div class="col-md-3">{{ criteria_formset.empty_form.name }}</div>
         <div class="col-md-2">{{ criteria_formset.empty_form.criterion_type }}</div>
-
-        <div class="col-md-3">
-            <div class="d-flex align-items-center">
-                <input type="range" class="form-range w-75" min="0.01" max="1.0" step="0.01" value="0.25">
-                {% render_field criteria_formset.empty_form.weight class="form-control form-control-sm w-25 ms-2" %}
-            </div>
-        </div>
-        
-        <div class="col-md-3 conditional-numeric">
+        <div class="col-md-2">{{ criteria_formset.empty_form.weight }}</div>
+        <div class="col-md-4 conditional-numeric">
             <div class="row gx-2">
-                <div class="col-5">{{ criteria_formset.empty_form.proportionality }}</div>
+                <div class="col-6">{{ criteria_formset.empty_form.proportionality }}</div>
                 <div class="col-3">{{ criteria_formset.empty_form.good_value }}</div>
-                <div class="col-4">{{ criteria_formset.empty_form.neutral_value }}</div>
+                <div class="col-3">{{ criteria_formset.empty_form.neutral_value }}</div>
             </div>
         </div>
         <div class="col-md-1">
@@ -98,6 +104,7 @@
         </div>
     </div>
 </template>
+<template id="alternative-form-template"></template>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -121,40 +128,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const addAlternativeBtn = document.getElementById('add-alternative-btn');
     const alternativeTemplate = document.getElementById('alternative-form-template');
     let alternativeCounter = 0;
-
-    // NOVA FUNÇÃO PARA SINCRONIZAR SLIDER E CAMPO NUMÉRICO
-    function syncSliderAndNumberInput(formRow) {
-        const slider = formRow.querySelector('input[type="range"]');
-        const numberInput = formRow.querySelector('input[type="number"]');
-
-        if (slider && numberInput) {
-            // Sincroniza slider -> número
-            slider.addEventListener('input', () => {
-                numberInput.value = slider.value;
-                updateTotalWeight(); // Atualiza a soma total
-            });
-            // Sincroniza número -> slider
-            numberInput.addEventListener('input', () => {
-                slider.value = numberInput.value;
-                updateTotalWeight(); // Atualiza a soma total
-            });
-        }
-    }
-
-    // ATUALIZAÇÃO na função addCriterionForm
-    function addCriterionForm() {
-        let formNum = parseInt(totalFormsInput.value);
-        const newFormHTML = criterionTemplate.innerHTML.replace(/__prefix__/g, formNum);
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = newFormHTML;
-        const newFormElement = tempDiv.firstElementChild;
-        criteriaContainer.appendChild(newFormElement);
-        totalFormsInput.value = formNum + 1;
-        
-        // Aplica listeners ao novo formulário
-        syncSliderAndNumberInput(newFormElement); // << APLICA A SINCRONIZAÇÃO
-        updateAllFormsVisibility();
-    }
 
     // --- LÓGICA DE EVENTOS ---
     step1Card.addEventListener('change', function(event) {
@@ -285,9 +258,9 @@ document.addEventListener('DOMContentLoaded', function () {
         alternativeCounter++;
     }
 
-    criteriaContainer.querySelectorAll('.criterion-form').forEach(syncSliderAndNumberInput);
+    // Inicialização da página
     updateAllFormsVisibility();
-    updateTotalWeight()
+    updateTotalWeight();
 });
 </script>
 {% endblock %}
