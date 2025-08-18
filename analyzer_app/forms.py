@@ -145,3 +145,5 @@ class CriterionForm(forms.Form):
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: 85000'}),
         required=False
     )
+    
+    string_values = forms.CharField(widget=forms.HiddenInput(), required=False)

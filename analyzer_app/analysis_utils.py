@@ -499,18 +499,37 @@ class DataAnalyzer:
         return podium_list
 
     def _get_recommendation_details(self, product: pd.Series) -> list:
-        """Retorna uma lista de strings com a justificativa da pontuação de um produto."""
+        """
+        Retorna uma lista de strings com a justificativa da pontuação de um produto.
+        """
         if self.weights is None: return []
+
         details_list = []
         sorted_criteria = self.weights.sort_values(ascending=False).index
+
         for col in sorted_criteria:
             score_col = f"{col}_score"
             if score_col not in product or pd.isna(product[score_col]): continue
+            
             score = product[score_col]
             current_value = product.get(col, "N/A")
-            if isinstance(current_value, bool): value_str = "Sim" if current_value else "Não"
-            elif isinstance(current_value, (int, float)): value_str = f"{current_value:.1f}"
-            else: value_str = str(current_value)
-            justification = "[Vantagem]" if score > 0 else "[Desvantagem]" if score < 0 else "[Neutro]"
-            details_list.append(f"<b>{col}:</b> {value_str} {justification} (Pontos: {score:.2f})")
+            
+            if isinstance(current_value, bool):
+                value_str = "Sim" if current_value else "Não"
+            elif isinstance(current_value, (int, float)):
+                value_str = f"{current_value:.1f}"
+            else:
+                value_str = str(current_value)
+
+            justification = ""
+            if score > 0:
+                justification = "[Vantagem]"
+            elif score < 0:
+                justification = "[Desvantagem]"
+            else:
+                justification = "[Neutro]"
+
+            # ALTERAÇÃO AQUI: de .2f para .4f para mostrar mais precisão
+            details_list.append(f"<b>{col}:</b> {value_str} {justification} (Pontos: {score:.4f})")
+        
         return details_list
