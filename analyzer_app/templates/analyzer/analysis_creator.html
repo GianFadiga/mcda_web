@@ -153,39 +153,40 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     // ===================================================================
-    //  I. REFERÊNCIAS AOS ELEMENTOS E VARIÁVEIS DE ESTADO
+    //  I. REFERÊNCIAS AOS ELEMENTOS DO DOM
     // ===================================================================
     const mainForm = document.getElementById('analysis-creator-form');
     const step1Card = document.getElementById('step1-card');
     const step2Card = document.getElementById('step2-card');
     const proceedBtn = document.getElementById('proceed-to-step2-btn');
     
-    // Etapa 1
+    // --- Etapa 1 ---
     const criteriaContainer = document.getElementById('criteria-forms-container');
     const criterionTemplate = document.getElementById('criterion-form-template');
     const totalFormsInput = document.querySelector('#id_criteria-TOTAL_FORMS');
     const totalWeightDisplay = document.getElementById('total-weight-display');
     const headerNumeric = document.querySelector('.criterion-header .conditional-numeric-header');
 
-    // Etapa 2
+    // --- Etapa 2 ---
     const alternativesHeader = document.getElementById('alternatives-table-header');
     const alternativesContainer = document.getElementById('alternatives-forms-container');
     const alternativeTemplate = document.getElementById('alternative-form-template');
     let alternativeCounter = 0;
 
-    // Modal de Strings
+    // --- Modal de Strings ---
     const stringModalElement = document.getElementById('stringValuesModal');
     const stringModal = new bootstrap.Modal(stringModalElement);
     const stringModalTitle = document.getElementById('modalCriterionName');
     const stringValuesContainer = document.getElementById('string-values-container');
     const stringValueTemplate = document.getElementById('string-value-row-template');
+    const addStringValueBtn = document.getElementById('add-string-value-btn');
+    const saveStringValuesBtn = document.getElementById('save-string-values-btn');
     let activeCriterionForm = null;
 
     // ===================================================================
     //  II. FUNÇÕES DE MANIPULAÇÃO
     // ===================================================================
-
-    // --- Funções da Etapa 1 ---
+    // ... (Todas as funções como updateAllFormsVisibility, updateTotalWeight, etc. continuam aqui, sem alterações)
     function updateAllFormsVisibility() {
         let showNumericHeader = false;
         criteriaContainer.querySelectorAll('.criterion-form').forEach(form => {
@@ -193,11 +194,9 @@ document.addEventListener('DOMContentLoaded', function () {
             const numericGroup = form.querySelector('.conditional-numeric');
             const stringGroup = form.querySelector('.conditional-string');
             const isDeleted = form.querySelector('input[type="checkbox"][name$="-DELETE"]')?.checked;
-            
             if (select && !isDeleted && form.style.display !== 'none') {
                 const isNumeric = select.value === 'number';
                 const isString = select.value === 'string';
-                
                 if (numericGroup) numericGroup.style.display = isNumeric ? '' : 'none';
                 if (stringGroup) stringGroup.style.display = isString ? 'block' : 'none';
                 if (isNumeric) showNumericHeader = true;
@@ -205,7 +204,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         if (headerNumeric) headerNumeric.style.display = showNumericHeader ? '' : 'none';
     }
-
     function updateTotalWeight() {
         let totalWeight = 0;
         criteriaContainer.querySelectorAll('.criterion-form').forEach(form => {
@@ -218,7 +216,6 @@ document.addEventListener('DOMContentLoaded', function () {
         totalWeightDisplay.textContent = totalWeight.toFixed(2);
         totalWeightDisplay.classList.toggle('text-danger', totalWeight > 1.0);
     }
-
     function addCriterionForm() {
         let formNum = parseInt(totalFormsInput.value);
         const newFormHTML = criterionTemplate.innerHTML.replace(/__prefix__/g, formNum);
@@ -230,31 +227,28 @@ document.addEventListener('DOMContentLoaded', function () {
         updateAllFormsVisibility();
         updateTotalWeight();
     }
-    
-    // --- Funções do Modal de String ---
     function openStringModal(button) {
         activeCriterionForm = button.closest('.criterion-form');
         const criterionName = activeCriterionForm.querySelector('input[name$="-name"]').value || "[Critério sem nome]";
         stringModalTitle.textContent = criterionName;
-        
         stringValuesContainer.innerHTML = '';
         const hiddenInput = activeCriterionForm.querySelector('input[name$="-string_values"]');
         if (hiddenInput && hiddenInput.value) {
             try {
                 const values = JSON.parse(hiddenInput.value);
                 values.forEach(item => addStringValueRow(item.value, item.level));
-            } catch (e) { console.error("Erro ao ler JSON de valores de string:", e); }
+            } catch (e) { console.error("Erro ao ler JSON:", e); }
         }
-        addStringValueRow(); // Adiciona uma linha em branco por padrão
+        if (stringValuesContainer.children.length === 0) {
+            addStringValueRow();
+        }
     }
-
     function addStringValueRow(value = '', level = 'desejavel') {
         const newRow = stringValueTemplate.content.cloneNode(true);
         newRow.querySelector('.string-value-input').value = value;
         newRow.querySelector('.string-level-select').value = level;
         stringValuesContainer.appendChild(newRow);
     }
-
     function saveStringValues() {
         const values = [];
         stringValuesContainer.querySelectorAll('.string-value-row').forEach(row => {
@@ -270,8 +264,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         stringModal.hide();
     }
-
-    // --- Funções da Etapa 2 ---
     function proceedToStep2() {
         if (!document.getElementById('analysis_name').value.trim()) {
             alert('Por favor, dê um nome para a análise.'); return;
@@ -279,29 +271,22 @@ document.addEventListener('DOMContentLoaded', function () {
         if (parseFloat(totalWeightDisplay.textContent) > 1.0) {
             alert('A soma dos pesos não pode ser maior que 1.0.'); return;
         }
-
         step1Card.querySelectorAll('input, select, button').forEach(el => { el.disabled = true; });
-        
         let headerHTML = '<tr><th style="width: 20%;">Nome da Alternativa</th>';
         let templateRowHTML = '<td><input type="text" name="alternative-0-name" class="form-control" required></td>';
-        
         criteriaContainer.querySelectorAll('.criterion-form').forEach(form => {
             const formIndexMatch = form.querySelector('input[name$="-name"]').name.match(/criteria-(\d+)-name/);
             if (!formIndexMatch) return;
             const formIndex = formIndexMatch[1];
             const isDeleted = form.querySelector('input[type="checkbox"][name$="-DELETE"]')?.checked;
-            
             if (form.style.display !== 'none' && !isDeleted) {
                 const critName = form.querySelector('input[name$="-name"]').value;
                 headerHTML += `<th>${critName}</th>`;
                 const critType = form.querySelector('select[name$="-criterion_type"]').value;
                 const fieldName = `alternative-0-crit-${formIndex}`;
-                
-                if (critType === 'number') {
-                    templateRowHTML += `<td><input type="number" step="any" name="${fieldName}" class="form-control"></td>`;
-                } else if (critType === 'boolean') {
-                    templateRowHTML += `<td><select name="${fieldName}" class="form-select"><option value="TRUE">Sim</option><option value="FALSE" selected>Não</option></select></td>`;
-                } else if (critType === 'string') {
+                if (critType === 'number') { templateRowHTML += `<td><input type="number" step="any" name="${fieldName}" class="form-control"></td>`; }
+                else if (critType === 'boolean') { templateRowHTML += `<td><select name="${fieldName}" class="form-select"><option value="TRUE">Sim</option><option value="FALSE" selected>Não</option></select></td>`; }
+                else if (critType === 'string') {
                     const hiddenInput = form.querySelector('input[name$="-string_values"]');
                     let hasValues = false;
                     if (hiddenInput && hiddenInput.value) {
@@ -309,31 +294,24 @@ document.addEventListener('DOMContentLoaded', function () {
                             const stringValues = JSON.parse(hiddenInput.value);
                             if (Array.isArray(stringValues) && stringValues.length > 0) {
                                 let selectHTML = `<select name="${fieldName}" class="form-select">`;
-                                stringValues.forEach(item => {
-                                    selectHTML += `<option value="${item.value}">${item.value}</option>`;
-                                });
+                                stringValues.forEach(item => { selectHTML += `<option value="${item.value}">${item.value}</option>`; });
                                 selectHTML += `</select>`;
                                 templateRowHTML += `<td>${selectHTML}</td>`;
                                 hasValues = true;
                             }
                         } catch (e) { console.error("JSON inválido para dropdown:", e); }
                     }
-                    if (!hasValues) {
-                        templateRowHTML += `<td><input type="text" name="${fieldName}" class="form-control" placeholder="Texto livre"></td>`;
-                    }
+                    if (!hasValues) { templateRowHTML += `<td><input type="text" name="${fieldName}" class="form-control" placeholder="Texto livre"></td>`; }
                 }
             }
         });
         headerHTML += '<th>Ação</th></tr>';
         templateRowHTML += '<td><button type="button" class="btn btn-danger btn-sm delete-alternative-btn">Excluir</button></td>';
-
         alternativesHeader.innerHTML = headerHTML;
         alternativeTemplate.innerHTML = `<tr>${templateRowHTML}</tr>`;
-        
         step2Card.classList.remove('d-none');
         document.getElementById('add-alternative-btn').click();
     }
-
     function addAlternativeForm() {
         const templateHTML = alternativeTemplate.innerHTML.replace(/-0-/g, `-${alternativeCounter}-`);
         alternativesContainer.insertAdjacentHTML('beforeend', templateHTML);
@@ -343,13 +321,13 @@ document.addEventListener('DOMContentLoaded', function () {
     // ===================================================================
     //  III. EVENT LISTENERS PRINCIPAIS
     // ===================================================================
-    mainForm.addEventListener('click', function(event) {
+    
+    // Listener principal para cliques, usando delegação de eventos
+    document.body.addEventListener('click', function(event) {
         const target = event.target;
         if (target.id === 'add-criterion-btn') { addCriterionForm(); }
         else if (target.id === 'proceed-to-step2-btn') { proceedToStep2(); }
         else if (target.id === 'add-alternative-btn') { addAlternativeForm(); }
-        else if (target.id === 'add-string-value-btn') { addStringValueRow(); }
-        else if (target.id === 'save-string-values-btn') { saveStringValues(); }
         else if (target.classList.contains('open-string-modal-btn')) { openStringModal(target); }
         else if (target.classList.contains('delete-criterion-btn')) {
             const form = target.closest('.criterion-form');
@@ -360,11 +338,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 updateTotalWeight();
                 updateAllFormsVisibility();
             }
-        } else if (target.classList.contains('delete-alternative-btn')) {
+        } 
+        else if (target.classList.contains('delete-alternative-btn')) {
             target.closest('tr').remove();
-        } else if (target.classList.contains('delete-string-value-btn')) {
-            target.closest('.string-value-row').remove();
-        } else if (target.classList.contains('weight-step-btn')) {
+        } 
+        else if (target.classList.contains('weight-step-btn')) {
             const step = parseFloat(target.dataset.step);
             const inputGroup = target.closest('.input-group');
             const numberInput = inputGroup.querySelector('input[type="number"]');
@@ -373,6 +351,15 @@ document.addEventListener('DOMContentLoaded', function () {
             newValue = Math.max(0.01, Math.min(1.0, newValue));
             numberInput.value = newValue.toFixed(2);
             numberInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+    });
+
+    // Listeners diretos para os botões do MODAL
+    addStringValueBtn.addEventListener('click', addStringValueRow);
+    saveStringValuesBtn.addEventListener('click', saveStringValues);
+    stringValuesContainer.addEventListener('click', function(event) {
+        if (event.target.classList.contains('delete-string-value-btn')) {
+            event.target.closest('.string-value-row').remove();
         }
     });
 
