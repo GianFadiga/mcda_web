@@ -42,7 +42,10 @@
     {# SEÇÃO DE RESULTADOS - Aparece se HOUVER resultados #}
     {% if has_results %}
     <div id="results-section" class="mt-5">
-        <h3 class="text-center mb-4">Resultados da Análise para: <strong>{{ file_name }}</strong></h3>
+        <h3 class="text-center mb-4">Resultados da Análise para: <strong>{{ analysis.name }}</strong></h3>
+
+        <p class="text-center text-muted mb-4">Análise gerada em: {{ analysis.creation_date|date:"d/m/Y H:i" }}</p>
+
         <div class="text-center mb-4">
             <a href="{% url 'upload_form_root' %}" class="btn btn-secondary">Analisar outro arquivo</a>
         </div>

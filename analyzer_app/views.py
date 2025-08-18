@@ -42,6 +42,8 @@ from .forms import (
 from .models import Analysis, AnalysisLog, UserLog
 from django.template.exceptions import TemplateDoesNotExist
 User = get_user_model()
+from django.utils.text import slugify
+from django.urls import reverse
 
 
 @login_required
@@ -254,76 +256,80 @@ def profile_view(request):
 @login_required
 def analysis_creator_view(request):
     """
-    View para a página de criação de análises, com lógica de validação corrigida.
+    View para a página de criação de análises, com lógica completa para salvar no BD.
     """
     CriterionFormSet = formset_factory(CriterionForm, extra=1, can_delete=True)
 
     if request.method == 'POST':
         formset = CriterionFormSet(request.POST, prefix='criteria')
 
-        # A validação do formset agora funciona como um guarda inicial
         if not formset.is_valid():
             messages.error(request, "Houve um erro nos critérios definidos. Por favor, verifique os campos.")
             return render(request, 'analyzer/analysis_creator.html', {'criteria_formset': formset})
 
-        # Se o formset for válido, extraímos os dados e continuamos
         valid_criteria = [form for form in formset.cleaned_data if form and not form.get('DELETE', False)]
-        
         total_weight = sum(crit.get('weight', 0) for crit in valid_criteria)
+
         if total_weight > 1.0:
             messages.error(request, f"A soma dos pesos ({total_weight:.2f}) não pode ultrapassar 1.0.")
-            # Re-renderiza o formset com os dados preenchidos para o usuário corrigir
             return render(request, 'analyzer/analysis_creator.html', {'criteria_formset': CriterionFormSet(request.POST, prefix='criteria')})
 
         if not valid_criteria:
              messages.error(request, "Defina pelo menos um critério para a análise.")
              return render(request, 'analyzer/analysis_creator.html', {'criteria_formset': formset})
 
-        # Parse dos dados das Alternativas (Etapa 2)
         alternatives_data = _parse_alternatives_from_post(request.POST)
-        
-        # Geração do CSV Completo
-        analysis_name = request.POST.get('analysis_name', 'analise')
+        analysis_name = request.POST.get('analysis_name', 'analise-sem-nome')
         csv_content, error_message = _generate_complete_csv_string(valid_criteria, alternatives_data)
         
         if error_message:
             messages.error(request, error_message)
             return render(request, 'analyzer/analysis_creator.html', {'criteria_formset': formset})
 
-        # Execução da Ação (Download ou Análise)
         action = request.POST.get('action')
         if action == 'download':
             response = HttpResponse(csv_content, content_type='text/csv')
-            response['Content-Disposition'] = f'attachment; filename="{analysis_name}.csv"'
+            response['Content-Disposition'] = f'attachment; filename="{slugify(analysis_name)}.csv"'
             return response
 
         elif action == 'analyze':
+            # --- INÍCIO DA NOVA LÓGICA DE SALVAMENTO ---
             try:
-                with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.csv', encoding='utf-8') as temp_file:
-                    temp_file.write(csv_content)
-                    temp_file_path = temp_file.name
-                
-                analyzer = DataAnalyzer(temp_file_path)
-                analyzer.load_and_prepare_data()
-                analyzer.calculate_scores()
-                
-                podium_data = analyzer.get_podium_details()
-                visualizations = analyzer.generate_visualizations()
-                
-                context = {
-                    'podium_data': podium_data,
-                    'visualizations': visualizations,
-                    'has_results': True,
-                    'file_name': analysis_name
-                }
-                return render(request, 'analyzer/main.html', context)
+                # 1. Cria o nome do arquivo, assim como na sua view de upload original
+                username = slugify(request.user.username)
+                filename_slug = slugify(analysis_name)
+                new_filename = f"{username}-{filename_slug}.csv"
+                file_path = os.path.join(settings.UPLOAD_ROOT, new_filename)
+
+                # Garante que o diretório de upload exista
+                os.makedirs(settings.UPLOAD_ROOT, exist_ok=True)
+
+                # 2. Salva o conteúdo do CSV no arquivo físico
+                with open(file_path, 'w', newline='', encoding='utf-8') as f:
+                    f.write(csv_content)
+
+                # 3. Cria o registro da Análise no banco de dados
+                analysis = Analysis.objects.create(
+                    name=new_filename,
+                    description=f"Análise '{analysis_name}' criada pelo formulário web.",
+                    user=request.user
+                )
+
+                # (Opcional, mas recomendado) Cria um log da análise
+                AnalysisLog.objects.create(
+                    action='INSERT',
+                    analysis=analysis,
+                    new_data=json.dumps({'name': new_filename, 'user': username})
+                )
+
+                # 4. Redireciona para a view de análise, como no fluxo original
+                return redirect(reverse('analysis-view') + f'?analysis_id={analysis.id}')
+
             except Exception as e:
-                messages.error(request, f"Erro durante a análise: {e}")
-            finally:
-                if 'temp_file_path' in locals() and os.path.exists(temp_file_path):
-                    os.remove(temp_file_path)
-    
-    # Se GET, renderiza a página de criação
+                messages.error(request, f"Ocorreu um erro ao salvar ou processar a análise: {e}")
+            # --- FIM DA NOVA LÓGICA DE SALVAMENTO ---
+            
+    # Se GET, ou se o formset for inválido e não tratado acima, renderiza a página de criação
     formset = CriterionFormSet(prefix='criteria')
     return render(request, 'analyzer/analysis_creator.html', {'criteria_formset': formset})
 
