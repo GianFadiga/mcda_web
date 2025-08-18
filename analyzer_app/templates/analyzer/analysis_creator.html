@@ -26,8 +26,10 @@
                 <div class="row criterion-header fw-bold mb-2 d-none d-md-flex gx-2">
                     <div class="col-md-3">Nome do Critério</div>
                     <div class="col-md-2">Tipo</div>
-                    <div class="col-md-2">Importância (Peso)</div>
-                    <div class="col-md-4">Opções Específicas</div>
+                    <div class="col-md-3">Importância (Peso)</div>
+                    <div class="col-md-1 conditional-numeric-header">Preferência</div>
+                    <div class="col-md-1 conditional-numeric-header">Bom</div>
+                    <div class="col-md-1 conditional-numeric-header">Neutro</div>
                     <div class="col-md-1">Ação</div>
                 </div>
 
@@ -38,7 +40,7 @@
                         <div style="display:none;">{{ form.DELETE }}{{ form.string_values }}</div>
                         <div class="col-md-3">{{ form.name }}</div>
                         <div class="col-md-2">{{ form.criterion_type }}</div>
-                        <div class="col-md-2">
+                        <div class="col-md-3">
                             <div class="input-group">
                                 <button type="button" class="btn btn-outline-danger btn-sm weight-step-btn" data-step="-0.05">-0.05</button>
                                 <button type="button" class="btn btn-outline-danger btn-sm weight-step-btn" data-step="-0.01">-0.01</button>
@@ -47,17 +49,13 @@
                                 <button type="button" class="btn btn-outline-success btn-sm weight-step-btn" data-step="0.05">+0.05</button>
                             </div>
                         </div>
-                        <div class="col-md-4">
-                            <div class="row gx-2 conditional-numeric">
-                                <div class="col-6">{{ form.proportionality }}</div>
-                                <div class="col-3">{{ form.good_value }}</div>
-                                <div class="col-3">{{ form.neutral_value }}</div>
-                            </div>
-                            <div class="conditional-string" style="display: none;">
-                                <button type="button" class="btn btn-outline-info btn-sm w-100 open-string-modal-btn" data-bs-toggle="modal" data-bs-target="#stringValuesModal">
-                                    Definir Valores de Texto
-                                </button>
-                            </div>
+                        <div class="col-md-1 conditional-numeric">{{ form.proportionality }}</div>
+                        <div class="col-md-1 conditional-numeric">{{ form.good_value }}</div>
+                        <div class="col-md-1 conditional-numeric">{{ form.neutral_value }}</div>
+                        <div class="col-md-1 conditional-string" style="display: none;">
+                            <button type="button" class="btn btn-outline-info btn-sm w-100 open-string-modal-btn" data-bs-toggle="modal" data-bs-target="#stringValuesModal">
+                                Definir Valores
+                            </button>
                         </div>
                         <div class="col-md-1">
                             <button type="button" class="btn btn-danger btn-sm delete-criterion-btn w-100">Excluir</button>
@@ -70,24 +68,8 @@
                 <div class="text-center mt-4"><button type="button" id="proceed-to-step2-btn" class="btn btn-lg btn-info text-white">Confirmar Critérios e Adicionar Alternativas</button></div>
             </div>
         </div>
-
-        <div id="step2-card" class="card shadow-sm d-none">
-            <div class="card-header"><h4 class="mb-0">Etapa 2: Adicione as Alternativas</h4></div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-bordered">
-                        <thead id="alternatives-table-header"></thead>
-                        <tbody id="alternatives-forms-container"></tbody>
-                    </table>
-                </div>
-                <button type="button" id="add-alternative-btn" class="btn btn-outline-success mt-2"><i class="bi bi-plus-circle me-2"></i>Adicionar Alternativa</button>
-                <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
-                    <button type="submit" name="action" value="download" class="btn btn-secondary">Baixar CSV Completo</button>
-                    <button type="submit" name="action" value="analyze" class="btn btn-primary">Analisar Agora</button>
-                </div>
-            </div>
-        </div>
-    </form>
+        
+        </form>
 </div>
 
 <div class="modal fade" id="stringValuesModal" tabindex="-1" aria-hidden="true">
