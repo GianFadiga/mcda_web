@@ -127,29 +127,29 @@ class DataAnalyzer:
 
     def _map_string_columns(self) -> None:
         """Mapeia colunas de string para suas colunas de pontos correspondentes."""
+        print("\n[DEBUG] Iniciando o mapeamento de colunas de string...")
         self.string_columns_map = {}
-        if self.data_types is None: raise ValueError("Tipos de dados não foram carregados")
-        string_cols = [col for col, dtype in self.data_types.items() if dtype == 'string']
+
+        if self.data_types is None:
+            print("[DEBUG] Tipos de dados não carregados. Abortando mapeamento.")
+            raise ValueError("Tipos de dados não foram carregados corretamente")
+
+        string_cols = [col for col in self.data_types.index if self.data_types[col] == 'string']
+        print(f"[DEBUG] Colunas do tipo 'string' encontradas: {string_cols}")
+
         for col in string_cols:
             try:
                 col_idx = list(self.df.columns).index(col)
                 if col_idx + 1 < len(self.df.columns):
-                    pts_col_name_original = self.df.columns[col_idx + 1]
-                    # Verifica se a próxima coluna é de fato uma coluna de pontos
-                    proportionality_value = self.proportionality.get(pts_col_name_original)
-                    if proportionality_value == 'pts_string':
-                        new_pts_col_name = f"{col}_points"
-                        self.string_columns_map[col] = new_pts_col_name
-                        self.df.rename(columns={pts_col_name_original: new_pts_col_name}, inplace=True)
-                        # Atualiza também o proportionality e data_types para refletir a mudança de nome
-                        if pts_col_name_original in self.proportionality:
-                           self.proportionality[new_pts_col_name] = self.proportionality.pop(pts_col_name_original)
-                        if pts_col_name_original in self.data_types:
-                           self.data_types[new_pts_col_name] = self.data_types.pop(pts_col_name_original)
-
+                    pts_col = self.df.columns[col_idx + 1]
+                    new_pts_col_name = f"{col}_points"
+                    self.string_columns_map[col] = new_pts_col_name
+                    self.df = self.df.rename(columns={pts_col: new_pts_col_name})
+                    print(f"[DEBUG] Sucesso: Coluna '{col}' mapeada para '{new_pts_col_name}' (antiga '{pts_col}').")
+                else:
+                    print(f"[DEBUG] Aviso: Coluna '{col}' é a última, não há coluna de pontos para mapear.")
             except (ValueError, IndexError):
-                print(f"Aviso: Não foi possível mapear coluna de pontos para a coluna string '{col}'")
-
+                print(f"[DEBUG] Erro: Não foi possível mapear a coluna de pontos para '{col}'.")
 
     def _extract_reference_values(self) -> None:
         """Extrai valores de referência BOM e NEUTRO."""
@@ -237,37 +237,82 @@ class DataAnalyzer:
         return -weight
 
     def _calculate_proportional_score(self, value: float, good: float, neutral: float, weight: float) -> float:
+        # Caso onde bom == neutro, qualquer valor diferente é 0
+        if good == neutral:
+            return weight if value == good else 0
+        
+        # Caso crescente normal (ex: Potência - 120cv é melhor que 90cv)
         if good > neutral:
             if value >= good: return weight
             if value >= neutral: return ((value - neutral) / (good - neutral)) * weight
-            return -((abs(neutral - value)) / abs(neutral or 1)) * weight
-        else:
+            # Se o valor for pior que o neutro, a penalidade é proporcional à distância
+            denominator = neutral if neutral != 0 else 1
+            return -((abs(neutral - value)) / abs(denominator)) * weight
+        # Caso decrescente (incomum para 'proportional', mas coberto)
+        else: # good < neutral
             if value <= good: return weight
-            if value <= neutral: return ((value - good) / (neutral - good)) * weight # Erro corrigido aqui (era neutral_value - good_value)
-            return -((abs(value - neutral)) / abs(neutral or 1)) * weight
+            if value <= neutral: return ((neutral - value) / (neutral - good)) * weight
+            denominator = neutral if neutral != 0 else 1
+            return -((abs(value - neutral)) / abs(denominator)) * weight
 
     def _calculate_inverse_proportional_score(self, value: float, good: float, neutral: float, weight: float) -> float:
+         # Caso onde bom == neutro
+        if good == neutral:
+            return weight if value == good else 0
+            
+        # Caso decrescente normal (ex: Preço - 60k é melhor que 85k)
         if good < neutral:
             if value <= good: return weight
             if value <= neutral: return ((neutral - value) / (neutral - good)) * weight
-            return -((abs(value - neutral)) / abs(neutral or 1)) * weight
-        else:
+            # Se o valor for pior que o neutro, a penalidade é proporcional
+            denominator = neutral if neutral != 0 else 1
+            return -((abs(value - neutral)) / abs(denominator)) * weight
+        # Caso crescente (incomum para 'i_proportional', mas coberto)
+        else: # good > neutral
             if value >= good: return weight
-            if value >= neutral: return ((good - value) / (good - neutral)) * weight
-            return -((abs(neutral - value)) / abs(neutral or 1)) * weight
+            if value >= neutral: return ((value - good) / (neutral - good)) * weight
+            denominator = neutral if neutral != 0 else 1
+            return -((abs(neutral - value)) / abs(denominator)) * weight
     
-    def _calculate_string_score_value(self, value: Any, column: str) -> float:
-        if pd.isna(value): return 0
+    def _calculate_string_score_value(self, value: str, column: str) -> float:
+        """Calcula pontuação para um valor de string individual."""
+        print(f"\n[DEBUG] Calculando score para string. Coluna: '{column}', Valor: '{value}'")
         points_column = self.string_columns_map.get(column)
-        if not points_column or points_column not in self.df.columns: return 0
-        config_identifiers = ['PESO', 'TIPO', 'FUNCAO', 'BOM', 'NEUTRO']
-        mapping_data = self.df[~self.df[self.model_column].isin(config_identifiers)].copy()
-        mapping_data[points_column] = pd.to_numeric(mapping_data[points_column], errors='coerce')
-        mapping_data.dropna(subset=[column, points_column], inplace=True)
-        mapping = dict(zip(mapping_data[column], mapping_data[points_column]))
-        base_score = mapping.get(str(value).strip(), 0)
-        weight = float(self.weights.get(column, 0))
-        return base_score * weight
+
+        if not points_column or points_column not in self.df.columns:
+            print(f"[DEBUG] Erro: Coluna de pontos '{points_column}' não encontrada no DataFrame.")
+            return 0
+
+        try:
+            # Usando a lógica de filtro robusta em vez de iloc[5:]
+            config_identifiers = ['PESO', 'TIPO', 'FUNCAO', 'BOM', 'NEUTRO']
+            mapping_data = self.df[~self.df[self.model_column].isin(config_identifiers)].copy()
+            
+            mapping_data[points_column] = pd.to_numeric(mapping_data[points_column], errors='coerce')
+            mapping_data = mapping_data.dropna(subset=[column, points_column])
+
+            mapping = dict(zip(mapping_data[column], mapping_data[points_column]))
+            
+            if not mapping:
+                print("[DEBUG] Erro: O dicionário de mapeamento (cor -> pontos) está vazio.")
+                return 0
+            
+            print(f"[DEBUG] Dicionário de mapeamento criado: {mapping}")
+
+            clean_value = str(value).strip()
+            base_score = mapping.get(clean_value, 0)
+            print(f"[DEBUG] Pontuação base para '{clean_value}': {base_score}")
+            
+            column_weight = float(self.weights.get(column, 0))
+            print(f"[DEBUG] Peso para a coluna '{column}': {column_weight}")
+
+            final_score = base_score * column_weight
+            print(f"[DEBUG] Pontuação final (base * peso): {final_score}")
+            
+            return final_score
+        except Exception as e:
+            print(f"[DEBUG] Exceção inesperada ao calcular score de string: {str(e)}")
+            return 0
 
     # ===============================================================
     # SEUS MÉTODOS ORIGINAIS DE GERAÇÃO DE GRÁFICOS
