@@ -354,8 +354,7 @@ def _parse_alternatives_from_post(post_data):
 
 def _generate_complete_csv_string(criteria_data, alternatives_data):
     """
-    Gera o CSV completo com base nos critérios e nas alternativas,
-    incluindo a lógica para valores de string customizados.
+    Gera o CSV completo, incluindo a lógica para valores de string customizados.
     """
     try:
         # Mapa de desejabilidade para pontos (escala de 0 a 1)
@@ -366,45 +365,40 @@ def _generate_complete_csv_string(criteria_data, alternatives_data):
             'nao_desejavel': 0.1,
         }
 
-        # Dicionário para guardar o mapeamento de pontos de cada critério de string
         string_points_map = {}
-
         header = ['Modelo']
-        pesos = ['PESO']
-        tipos = ['TIPO']
-        funcoes = ['FUNCAO']
-        bom_values = ['BOM']
-        neutro_values = ['NEUTRO']
+        pesos, tipos, funcoes, bom_values, neutro_values = ['PESO'], ['TIPO'], ['FUNCAO'], ['BOM'], ['NEUTRO']
+
+        # Mapeia o índice original do formulário para o índice da coluna no CSV
+        crit_col_map = {}
+        current_col_idx = 1
 
         for i, crit in enumerate(criteria_data):
             crit_name = crit.get('name')
+            crit_type = crit.get('criterion_type')
+            
+            crit_col_map[i] = {'name': crit_name, 'type': crit_type}
+
             header.append(crit_name)
             pesos.append(crit.get('weight', 0))
-            
-            crit_type = crit.get('criterion_type')
             tipos.append({'string': 'string', 'number': 'number', 'boolean': 'boolean'}.get(crit_type))
-
+            
             if crit_type == 'number':
                 funcoes.append(crit.get('proportionality'))
                 bom_values.append(crit.get('good_value'))
                 neutro_values.append(crit.get('neutral_value'))
             elif crit_type == 'string':
-                # Se for string, adicionamos uma coluna de pontos
-                header.append(f"{crit_name}_points")
+                header.append(f"Pontos_{crit_name}")
                 pesos.append('')
                 tipos.append('pts_string')
                 funcoes.append('')
                 bom_values.append('')
                 neutro_values.append('')
                 
-                # Parse do JSON com os valores da string
                 string_values_json = crit.get('string_values')
                 if string_values_json:
                     string_values_list = json.loads(string_values_json)
-                    string_points_map[i] = {
-                        item['value']: desirability_map.get(item['level'], 0)
-                        for item in string_values_list
-                    }
+                    string_points_map[i] = {item['value']: desirability_map.get(item['level'], 0) for item in string_values_list}
             else: # boolean
                 funcoes.append('boolean')
                 bom_values.append('')
@@ -414,17 +408,14 @@ def _generate_complete_csv_string(criteria_data, alternatives_data):
         alternative_rows = []
         for alt_data in alternatives_data:
             row = [alt_data.get('name', '')]
-            col_offset = 0
             for i in range(len(criteria_data)):
                 field_name = f'crit-{i}'
                 value = alt_data.get(field_name, '')
                 row.append(value)
-
-                # Se for uma coluna de string, adicionamos a coluna de pontos correspondente
+                
                 if criteria_data[i].get('criterion_type') == 'string':
                     points = string_points_map.get(i, {}).get(value, 0)
                     row.append(points)
-                    col_offset += 1 # Ajusta o índice para as próximas colunas
             alternative_rows.append(row)
 
         output = io.StringIO()
