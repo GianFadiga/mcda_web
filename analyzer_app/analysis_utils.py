@@ -280,13 +280,97 @@ class DataAnalyzer:
         fig.add_vline(x=value, line_dash='dash', line_color='black')
         fig.add_annotation(x=value, y=y_position - 0.5, text=text, showarrow=True, font=dict(size=14, color="#000000"), arrowhead=2, arrowsize=1, arrowwidth=2, arrowcolor="#636363", ax=0, ay=-45, bordercolor="#c7c7c7", borderwidth=2, borderpad=4, bgcolor='white', opacity=1)
 
-    def _generate_string_charts(self) -> Dict[str, str]:
-        # ... (Sua função original de gráfico de string) ...
-        return {}
+     def _generate_string_charts(self) -> Dict[str, str]:
+        charts = {}
+        # Identifica colunas do tipo 'string' que estão nos dados de cálculo
+        string_cols = [col for col, dtype in self.data_types.items() if dtype == 'string' and col in self.calculation_df.columns]
+
+        for col in string_cols:
+            score_col = f"{col}_score"
+            # Pula se a coluna de score correspondente não existir
+            if score_col not in self.calculation_df.columns:
+                continue
+
+            # Prepara o DataFrame para o gráfico
+            df = self.calculation_df[[self.model_column, col, score_col]].copy().dropna(subset=[col, score_col])
+            if df.empty:
+                continue
+
+            # Classifica o resultado como Positivo, Negativo ou Neutro baseado no score
+            df['Color_Category'] = df[score_col].apply(lambda s: 'Positiva' if s > 0 else ('Negativa' if s < 0 else 'Neutra'))
+            df = df.sort_values(score_col, ascending=True)
+
+            # Cria o gráfico de barras com Plotly Express
+            fig = px.bar(
+                df,
+                y=self.model_column,
+                x=score_col,
+                text=col,  # Mostra o valor do texto (ex: "SATA", "NVMe") na barra
+                color='Color_Category',
+                orientation='h',
+                title=f"Análise de Pontos para '{col}'",
+                color_discrete_map={'Positiva': 'lightgreen', 'Negativa': 'palevioletred', 'Neutra': 'lightgray'},
+                hover_name=self.model_column,
+                hover_data={col: True, score_col: ':.2f'}
+            )
+            # Ajustes de layout
+            fig.update_traces(textposition='inside')
+            fig.update_layout(
+                xaxis_title="Pontuação do Atributo",
+                yaxis_title="Modelo",
+                plot_bgcolor='white',
+                paper_bgcolor='white',
+                legend_title_text='Resultado',
+            )
+            # Adiciona uma linha vertical no ponto zero para referência
+            fig.add_vline(x=0, line_dash='dash', line_color='black')
+            charts[f'string_{col}'] = fig.to_html(full_html=False, include_plotlyjs='cdn')
+
+        return charts
 
     def _generate_boolean_charts(self) -> Dict[str, str]:
-        # ... (Sua função original de gráfico booleano) ...
-        return {}
+        charts = {}
+        # Identifica colunas do tipo 'boolean'
+        boolean_cols = [col for col, dtype in self.data_types.items() if dtype == 'boolean' and col in self.calculation_df.columns]
+
+        for col in boolean_cols:
+            df = self.calculation_df[[self.model_column, col]].copy().dropna(subset=[col])
+            if df.empty:
+                continue
+
+            # Pega o valor definido como 'BOM' para este atributo
+            good_value = self.good_values.get(col)
+
+            # Traduz True/False para Sim/Não e define a cor
+            df['Status Text'] = df[col].map({True: 'Sim', False: 'Não'})
+            df['Color_Category'] = df[col].apply(lambda v: 'Positiva' if v == good_value else 'Negativa')
+            df['dummy_x'] = 1  # Cria um valor fixo para o comprimento da barra
+
+            # Cria o gráfico de barras
+            fig = px.bar(
+                df,
+                y=self.model_column,
+                x='dummy_x',
+                text='Status Text',  # Mostra "Sim" ou "Não" na barra
+                color='Color_Category',
+                orientation='h',
+                title=f"Análise de Atributo '{col}'",
+                color_discrete_map={'Positiva': 'lightgreen', 'Negativa': 'palevioletred'},
+                labels={self.model_column: 'Modelo'}
+            )
+            # Ajustes de layout
+            fig.update_traces(textposition='inside', textfont_size=14)
+            fig.update_layout(
+                xaxis_title="",
+                xaxis=dict(showticklabels=False, showgrid=False, zeroline=False), # Esconde o eixo X
+                plot_bgcolor='white',
+                paper_bgcolor='white',
+                legend_title_text='Resultado',
+                yaxis={'categoryorder': 'total ascending'}
+            )
+            charts[f'boolean_{col}'] = fig.to_html(full_html=False, include_plotlyjs='cdn')
+            
+        return charts
 
     # ===============================================================
     # NOVAS FUNÇÕES DO PÓDIO
