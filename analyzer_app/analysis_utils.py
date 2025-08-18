@@ -280,7 +280,7 @@ class DataAnalyzer:
         fig.add_vline(x=value, line_dash='dash', line_color='black')
         fig.add_annotation(x=value, y=y_position - 0.5, text=text, showarrow=True, font=dict(size=14, color="#000000"), arrowhead=2, arrowsize=1, arrowwidth=2, arrowcolor="#636363", ax=0, ay=-45, bordercolor="#c7c7c7", borderwidth=2, borderpad=4, bgcolor='white', opacity=1)
 
-     def _generate_string_charts(self) -> Dict[str, str]:
+    def _generate_string_charts(self) -> Dict[str, str]:
         charts = {}
         # Identifica colunas do tipo 'string' que estão nos dados de cálculo
         string_cols = [col for col, dtype in self.data_types.items() if dtype == 'string' and col in self.calculation_df.columns]
