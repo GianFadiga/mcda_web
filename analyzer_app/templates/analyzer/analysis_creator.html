@@ -152,33 +152,25 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // ===================================================================
-    //  I. REFERÊNCIAS AOS ELEMENTOS DO DOM
-    // ===================================================================
+    // I. REFERÊNCIAS AOS ELEMENTOS DO DOM
     const mainForm = document.getElementById('analysis-creator-form');
     const step1Card = document.getElementById('step1-card');
     const step2Card = document.getElementById('step2-card');
-    
-    // --- Etapa 1 ---
     const criteriaContainer = document.getElementById('criteria-forms-container');
     const criterionTemplate = document.getElementById('criterion-form-template');
     const totalFormsInput = document.querySelector('#id_criteria-TOTAL_FORMS');
     const totalWeightDisplay = document.getElementById('total-weight-display');
     const headerNumeric = document.querySelector('.criterion-header .conditional-numeric-header');
-
-    // --- Etapa 2 ---
     const alternativesHeader = document.getElementById('alternatives-table-header');
     const alternativesContainer = document.getElementById('alternatives-forms-container');
     const alternativeTemplate = document.getElementById('alternative-form-template');
-    let alternativeCounter = 0;
-
-    // --- Modal de Strings ---
     const stringModalElement = document.getElementById('stringValuesModal');
     const stringModal = new bootstrap.Modal(stringModalElement);
     const stringModalTitle = document.getElementById('modalCriterionName');
     const stringValuesContainer = document.getElementById('string-values-container');
     const stringValueTemplate = document.getElementById('string-value-row-template');
     let activeCriterionForm = null;
+    let alternativeCounter = 0;
 
     // ===================================================================
     //  II. FUNÇÕES DE MANIPULAÇÃO
@@ -330,24 +322,16 @@ document.addEventListener('DOMContentLoaded', function () {
     // ===================================================================
     //  III. EVENT LISTENERS PRINCIPAIS
     // ===================================================================
-    document.getElementById('add-criterion-btn').addEventListener('click', addCriterionForm);
-    document.getElementById('proceed-to-step2-btn').addEventListener('click', proceedToStep2);
-    document.getElementById('add-alternative-btn').addEventListener('click', addAlternativeForm);
-    
-    // Listeners para o Modal de String
-    document.getElementById('add-string-value-btn').addEventListener('click', addStringValueRow);
-    document.getElementById('save-string-values-btn').addEventListener('click', saveStringValues);
-    stringValuesContainer.addEventListener('click', function(event) {
-        if (event.target.classList.contains('delete-string-value-btn')) {
-            event.target.closest('.string-value-row').remove();
-        }
-    });
-
-    // Listener geral usando delegação para ações dentro dos formulários
-    mainForm.addEventListener('click', function(event) {
+    mainForm.addEventListener('click', (event) => {
         const target = event.target;
-        if (target.classList.contains('open-string-modal-btn')) { openStringModal(target); }
-        if (target.classList.contains('delete-criterion-btn')) {
+        const targetId = target.id;
+        const targetClassList = target.classList;
+
+        if (targetId === 'add-criterion-btn') addCriterionForm();
+        else if (targetId === 'proceed-to-step2-btn') proceedToStep2();
+        else if (targetId === 'add-alternative-btn') addAlternativeForm();
+        else if (target.closest('.open-string-modal-btn')) openStringModal(target);
+        else if (target.closest('.delete-criterion-btn')) {
             const form = target.closest('.criterion-form');
             const deleteCheckbox = form.querySelector('input[type="checkbox"][name$="-DELETE"]');
             if (deleteCheckbox) {
@@ -356,9 +340,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 updateTotalWeight();
                 updateAllFormsVisibility();
             }
-        } 
-        if (target.classList.contains('delete-alternative-btn')) { target.closest('tr').remove(); }
-        if (target.classList.contains('weight-step-btn')) {
+        }
+        else if (target.closest('.delete-alternative-btn')) target.closest('tr').remove();
+        else if (target.closest('.weight-step-btn')) {
             const step = parseFloat(target.dataset.step);
             const numberInput = target.closest('.input-group').querySelector('input[type="number"]');
             let currentValue = parseFloat(numberInput.value) || 0;
@@ -368,27 +352,25 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    mainForm.addEventListener('change', function(event) {
-        if (event.target.matches('select[name$="-criterion_type"]')) {
-            updateAllFormsVisibility();
-        }
+    stringModalElement.addEventListener('click', (event) => {
+        if(event.target.id === 'add-string-value-btn') addStringValueRow();
+        if(event.target.id === 'save-string-values-btn') saveStringValues();
+        if(event.target.matches('.delete-string-value-btn')) event.target.closest('.string-value-row').remove();
     });
 
-    mainForm.addEventListener('input', function(event) {
-        if (event.target.matches('input[name$="-weight"]')) {
-            updateTotalWeight();
-        }
+    mainForm.addEventListener('change', (event) => {
+        if (event.target.matches('select[name$="-criterion_type"]')) updateAllFormsVisibility();
     });
 
-    mainForm.addEventListener('submit', function() {
-        step1Card.querySelectorAll('input, select, button').forEach(el => {
-            el.disabled = false;
-        });
+    mainForm.addEventListener('input', (event) => {
+        if (event.target.matches('input[name$="-weight"]')) updateTotalWeight();
     });
 
-    // ===================================================================
-    //  IV. INICIALIZAÇÃO DA PÁGINA
-    // ===================================================================
+    mainForm.addEventListener('submit', () => {
+        step1Card.querySelectorAll('input, select, button').forEach(el => { el.disabled = false; });
+    });
+
+    // IV. INICIALIZAÇÃO
     updateAllFormsVisibility();
     updateTotalWeight();
 });

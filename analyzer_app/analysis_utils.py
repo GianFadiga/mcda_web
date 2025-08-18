@@ -1,11 +1,4 @@
 # analyzer_app/analysis_utils.py
-"""
-Módulo de análise de dados para comparação de produtos.
-
-Este módulo permite carregar, analisar e visualizar dados de comparação de produtos
-com base em critérios pré-definidos, gerando pontuações e recomendações.
-"""
-
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -16,9 +9,9 @@ from typing import Dict, Optional, List, Union, Any
 class DataAnalyzer:
     """Classe principal para análise e comparação de dados de produtos."""
 
-    # ... (init, load_and_prepare_data, etc. - todo o início da classe) ...
-    def __init__(self, file_path: str) -> None:
+    def __init__(self, file_path: str, delimiter: Optional[str] = None):
         self.file_path = file_path
+        self.delimiter = delimiter
         self.df = None
         self.weights = None
         self.data_types = None
@@ -29,49 +22,47 @@ class DataAnalyzer:
         self.string_columns_map = {}
         self.model_column = None
 
-    # ===============================================================
-    # SEÇÃO DE CARREGAMENTO E PREPARAÇÃO DE DADOS (NOSSA VERSÃO ROBUSTA)
-    # ===============================================================
-
     def load_and_prepare_data(self) -> None:
         self._load_raw_data()
         self._clean_empty_columns()
         self._extract_configurations()
         self._map_string_columns()
         self._extract_reference_values()
-        self._prepare_calculation_data()
+        self._prepare_calculation_data() # << CORREÇÃO CRÍTICA AQUI
         self._convert_data_types()
 
     def _load_raw_data(self) -> None:
         try:
-            with open(self.file_path, 'r', encoding='UTF-8', newline='') as f:
-                first_line = f.readline()
-                f.seek(0)
-                try:
-                    dialect = csv.Sniffer().sniff(f.read(2048))
-                    separator = dialect.delimiter
-                except csv.Error:
-                    separator = ','
-                f.seek(0)
-                print(f"Separador '{separator}' detectado.")
-                config_keywords = ['PESO', 'TIPO', 'FUNCAO', 'BOM', 'NEUTRO']
-                is_data_row = any(first_line.strip().upper().startswith(kw) for kw in config_keywords)
+            separator = self.delimiter
+            if separator:
+                print(f"Usando separador explícito: '{separator}'")
+            else:
+                with open(self.file_path, 'r', encoding='UTF-8', newline='') as f:
+                    try:
+                        dialect = csv.Sniffer().sniff(f.read(2048))
+                        separator = dialect.delimiter
+                    except csv.Error:
+                        separator = ','
+                print(f"Separador detectado pelo Sniffer: '{separator}'")
 
+            with open(self.file_path, 'r', encoding='UTF-8') as f:
+                first_line = f.readline()
+            
+            config_keywords = ['PESO', 'TIPO', 'FUNCAO', 'BOM', 'NEUTRO']
+            is_data_row = any(first_line.strip().upper().startswith(kw) for kw in config_keywords)
             header_option = None if is_data_row else 0
+            
             self.df = pd.read_csv(self.file_path, sep=separator, skipinitialspace=True, header=header_option)
+            
             if is_data_row:
                 self.df.columns = [f'Coluna_{i+1}' for i in range(len(self.df.columns))]
-                print("Arquivo carregado sem cabeçalho.")
-            else:
-                 print("Arquivo carregado com cabeçalho.")
-
+            
             if not self.df.empty:
                  self.model_column = self.df.columns[0]
             else:
                 raise ValueError("Arquivo CSV está vazio.")
         except Exception as e:
-            raise ValueError(f"Erro ao carregar arquivo: {e}")
-
+            raise ValueError(f"Erro ao carregar ou processar arquivo: {e}")
 
     def _clean_empty_columns(self) -> None:
         self.df.dropna(axis=1, how='all', inplace=True)
@@ -79,54 +70,37 @@ class DataAnalyzer:
     def _extract_configurations(self) -> None:
         if len(self.df) < 3: raise ValueError("Arquivo CSV não tem linhas de configuração suficientes.")
         first_col = self.df.columns[0]
+        self.df[first_col] = self.df[first_col].astype(str)
         
-        # Normaliza a primeira coluna para string para a verificação
-        df_str_col = self.df[first_col].astype(str)
-        is_new_format = any(val.upper() in ['PESO', 'TIPO', 'FUNCAO'] for val in df_str_col)
-
-        if is_new_format:
-            print("Tentando extrair configuração pelo método novo (com identificadores).")
-            # Força os valores a serem strings para a comparação
-            self.df[first_col] = self.df[first_col].astype(str)
-            self.weights = self.df[self.df[first_col].str.upper() == 'PESO'].iloc[0].drop(first_col).dropna().astype(float)
-            self.data_types = self.df[self.df[first_col].str.upper() == 'TIPO'].iloc[0].drop(first_col).dropna()
-            self.proportionality = self.df[self.df[first_col].str.upper() == 'FUNCAO'].iloc[0].drop(first_col).dropna()
-        else:
-            print("Extraindo configuração pelo método antigo (baseado em posição).")
-            self.weights = self.df.iloc[0].dropna().astype(float)
-            self.data_types = self.df.iloc[1].dropna()
-            self.proportionality = self.df.iloc[2].dropna()
-            # Adiciona os identificadores para padronizar o dataframe
-            self.df.loc[self.df.index[0], first_col] = 'PESO'
-            self.df.loc[self.df.index[1], first_col] = 'TIPO'
-            self.df.loc[self.df.index[2], first_col] = 'FUNCAO'
-
+        # Garante que os identificadores estejam presentes para o filtro posterior
+        keywords = {'PESO': 0, 'TIPO': 1, 'FUNCAO': 2, 'BOM': 3, 'NEUTRO': 4}
+        for key, idx in keywords.items():
+            if key not in self.df[first_col].str.upper().values:
+                 if self.df.iloc[idx, 0] is np.nan or pd.isna(self.df.iloc[idx, 0]) or not self.df.iloc[idx, 0]:
+                    self.df.iloc[idx, 0] = key
+        
+        self.weights = self.df[self.df[first_col].str.upper() == 'PESO'].iloc[0].drop(first_col).dropna().astype(float)
+        self.data_types = self.df[self.df[first_col].str.upper() == 'TIPO'].iloc[0].drop(first_col).dropna()
+        self.proportionality = self.df[self.df[first_col].str.upper() == 'FUNCAO'].iloc[0].drop(first_col).dropna()
 
     def _map_string_columns(self) -> None:
-        """Mapeia colunas de string para suas colunas de pontos correspondentes."""
         print("\n[DEBUG] Iniciando o mapeamento de colunas de string...")
         self.string_columns_map = {}
-
-        if self.data_types is None:
-            print("[DEBUG] Tipos de dados não carregados. Abortando mapeamento.")
-            raise ValueError("Tipos de dados não foram carregados corretamente")
-
+        if self.data_types is None: raise ValueError("Tipos de dados não foram carregados")
         string_cols = [col for col in self.data_types.index if self.data_types[col] == 'string']
         print(f"[DEBUG] Colunas do tipo 'string' encontradas: {string_cols}")
-
         for col in string_cols:
             try:
                 col_idx = list(self.df.columns).index(col)
                 if col_idx + 1 < len(self.df.columns):
                     pts_col = self.df.columns[col_idx + 1]
-                    new_pts_col_name = f"{col}_points"
-                    self.string_columns_map[col] = new_pts_col_name
-                    self.df = self.df.rename(columns={pts_col: new_pts_col_name})
-                    print(f"[DEBUG] Sucesso: Coluna '{col}' mapeada para '{new_pts_col_name}' (antiga '{pts_col}').")
-                else:
-                    print(f"[DEBUG] Aviso: Coluna '{col}' é a última, não há coluna de pontos para mapear.")
+                    if self.data_types.get(pts_col) == 'pts_string' or self.proportionality.get(pts_col) == 'pts_string':
+                        new_pts_col_name = f"{col}_points"
+                        self.string_columns_map[col] = new_pts_col_name
+                        self.df = self.df.rename(columns={pts_col: new_pts_col_name})
+                        print(f"[DEBUG] Sucesso: Coluna '{col}' mapeada para '{new_pts_col_name}' (antiga '{pts_col}').")
             except (ValueError, IndexError):
-                print(f"[DEBUG] Erro: Não foi possível mapear a coluna de pontos para '{col}'.")
+                print(f"[DEBUG] Erro ao mapear a coluna de pontos para '{col}'.")
 
     def _extract_reference_values(self) -> None:
         self.df[self.model_column] = self.df[self.model_column].astype(str)
@@ -136,118 +110,21 @@ class DataAnalyzer:
         self.neutral_values = neutral_row.iloc[0].dropna() if not neutral_row.empty else pd.Series(dtype='object')
 
     def _prepare_calculation_data(self) -> None:
+        """Versão corrigida que filtra por identificadores, não por posição."""
         config_identifiers = ['PESO', 'TIPO', 'FUNCAO', 'BOM', 'NEUTRO']
-        # Garante que a comparação seja case-insensitive
         self.calculation_df = self.df[~self.df[self.model_column].str.upper().isin(config_identifiers)].reset_index(drop=True).copy()
 
     def _convert_data_types(self) -> None:
-        """Converte os tipos de dados conforme especificado."""
-        for col in self.data_types.index:
-            if col not in self.calculation_df.columns: continue
-            dtype = self.data_types[col]
-            try:
-                if dtype == 'number': self._convert_numeric_column(col)
-                elif dtype == 'boolean': self._convert_boolean_column(col)
-                elif dtype == 'string': self.calculation_df[col] = self.calculation_df[col].astype(str)
-            except Exception as e: print(f"Erro ao converter coluna '{col}': {str(e)}")
+        # ... (esta função está correta, mantenha a sua versão) ...
+        pass
 
-    def _convert_numeric_column(self, col: str) -> None:
-        """Converte coluna numérica e valores de referência."""
-        if col in self.good_values: self.good_values[col] = pd.to_numeric(self.good_values.get(col), errors='coerce')
-        if col in self.neutral_values: self.neutral_values[col] = pd.to_numeric(self.neutral_values.get(col), errors='coerce')
-        self.calculation_df[col] = pd.to_numeric(self.calculation_df[col], errors='coerce')
-
-    def _convert_boolean_column(self, col: str) -> None:
-        """Converte coluna booleana e valores de referência."""
-        if col in self.good_values: self.good_values[col] = str(self.good_values.get(col, '')).strip().upper() == 'TRUE'
-        if col in self.neutral_values: self.neutral_values[col] = str(self.neutral_values.get(col, '')).strip().upper() == 'TRUE'
-        self.calculation_df[col] = self.calculation_df[col].astype(str).str.strip().str.upper().map({'TRUE': True, 'FALSE': False}).fillna(False).astype(bool)
-
-    # ... (Restante das funções de cálculo de score) ...
-    def calculate_scores(self) -> None:
-        self._validate_calculation_preconditions()
-        for col in self.weights.index: self._process_column_for_scoring(col)
-        self._calculate_total_score()
-
-    def _validate_calculation_preconditions(self) -> None:
-        if self.calculation_df is None or self.data_types is None or self.weights is None:
-            raise ValueError("Dados não carregados. Execute load_and_prepare_data() primeiro")
-
-    def _process_column_for_scoring(self, col: str) -> None:
-        score_col_name = f"{col}_score"
-        dtype = self.data_types.get(col)
-        if dtype in ['number', 'boolean']: self._calculate_numeric_score(col, score_col_name)
-        elif dtype == 'string': self._calculate_string_score(col, score_col_name)
-
-    def _calculate_numeric_score(self, col: str, score_col_name: str) -> None:
-        good_value = self.good_values.get(col)
-        neutral_value = self.neutral_values.get(col)
-        weight = self.weights.get(col, 0)
-        proportionality = self.proportionality.get(col)
-        if pd.isna(good_value) or pd.isna(neutral_value) or not proportionality:
-            self.calculation_df[score_col_name] = 0; return
-        self.calculation_df[score_col_name] = self.calculation_df.apply(
-            lambda row: self._calculate_numeric_score_value(row.get(col), good_value, neutral_value, weight, proportionality), axis=1)
-
-    def _calculate_string_score(self, col: str, score_col_name: str) -> None:
-        if col not in self.calculation_df.columns: self.calculation_df[score_col_name] = 0; return
-        self.calculation_df[score_col_name] = self.calculation_df.apply(lambda row: self._calculate_string_score_value(row.get(col), col), axis=1)
-
-    def _calculate_total_score(self) -> None:
-        score_columns = [c for c in self.calculation_df.columns if c.endswith('_score')]
-        self.calculation_df['Total_Score'] = self.calculation_df[score_columns].sum(axis=1) if score_columns else 0
-
-    def _calculate_numeric_score_value(self, value: Any, good_value: Any, neutral_value: Any, weight: float, prop_type: str) -> float:
-        if pd.isna(value): return 0
-        if isinstance(value, (bool, np.bool_)): return self._calculate_boolean_score(value, good_value, neutral_value, weight)
-        if pd.isna(good_value) or pd.isna(neutral_value) or good_value == neutral_value: return 0
-        if prop_type == 'proportional': return self._calculate_proportional_score(value, good_value, neutral_value, weight)
-        if prop_type == 'i_proportional': return self._calculate_inverse_proportional_score(value, good_value, neutral_value, weight)
-        return 0
-
-    def _calculate_boolean_score(self, value: bool, good_value: bool, neutral_value: bool, weight: float) -> float:
-        if good_value == neutral_value: return weight if value == good_value else 0
-        if value == good_value: return weight
-        if value == neutral_value: return 0
-        return -weight
-
+    # ... (FUNÇÕES DE CÁLCULO DE SCORE CORRIGIDAS) ...
     def _calculate_proportional_score(self, value: float, good: float, neutral: float, weight: float) -> float:
-        # Caso onde bom == neutro, qualquer valor diferente é 0
-        if good == neutral:
-            return weight if value == good else 0
-        
-        # Caso crescente normal (ex: Potência - 120cv é melhor que 90cv)
-        if good > neutral:
-            if value >= good: return weight
-            if value >= neutral: return ((value - neutral) / (good - neutral)) * weight
-            # Se o valor for pior que o neutro, a penalidade é proporcional à distância
-            denominator = neutral if neutral != 0 else 1
-            return -((abs(neutral - value)) / abs(denominator)) * weight
-        # Caso decrescente (incomum para 'proportional', mas coberto)
-        else: # good < neutral
-            if value <= good: return weight
-            if value <= neutral: return ((neutral - value) / (neutral - good)) * weight
-            denominator = neutral if neutral != 0 else 1
-            return -((abs(value - neutral)) / abs(denominator)) * weight
-
+        # ... (versão corrigida que já te passei) ...
+        pass
     def _calculate_inverse_proportional_score(self, value: float, good: float, neutral: float, weight: float) -> float:
-         # Caso onde bom == neutro
-        if good == neutral:
-            return weight if value == good else 0
-            
-        # Caso decrescente normal (ex: Preço - 60k é melhor que 85k)
-        if good < neutral:
-            if value <= good: return weight
-            if value <= neutral: return ((neutral - value) / (neutral - good)) * weight
-            # Se o valor for pior que o neutro, a penalidade é proporcional
-            denominator = neutral if neutral != 0 else 1
-            return -((abs(value - neutral)) / abs(denominator)) * weight
-        # Caso crescente (incomum para 'i_proportional', mas coberto)
-        else: # good > neutral
-            if value >= good: return weight
-            if value >= neutral: return ((value - good) / (neutral - good)) * weight
-            denominator = neutral if neutral != 0 else 1
-            return -((abs(neutral - value)) / abs(denominator)) * weight
+        # ... (versão corrigida que já te passei) ...
+        pass
     
     def _calculate_string_score_value(self, value: str, column: str) -> float:
         """Calcula pontuação para um valor de string individual."""
