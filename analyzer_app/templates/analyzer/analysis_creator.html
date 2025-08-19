@@ -24,11 +24,19 @@
                     <input type="text" name="analysis_name" id="analysis_name" class="form-control" placeholder="Ex: Escolha de novo celular" required>
                 </div>
 
-                <!-- CABEÇALHO FIXO CORRIGIDO -->
+                <!-- CABEÇALHO FIXO CORRIGIDO E COMPLETO -->
                 <div class="row criterion-header fw-bold mb-2 d-none d-md-flex gx-3 align-items-center">
                     <div class="col-md-3">Nome do Critério</div>
-                    <div class="col-md-1">Tipo</div> <div class="col-md-3">Importância (Peso)</div>
-                    <div class="col-md-4 conditional-numeric-header"> </div>
+                    <div class="col-md-1">Tipo</div>
+                    <div class="col-md-3">Importância (Peso)</div>
+                    <div class="col-md-4 conditional-numeric-header">
+                        <!-- Div aninhada para os sub-cabeçalhos -->
+                        <div class="row gx-2">
+                            <div class="col-5">Preferência</div>
+                            <div class="col-4">Bom</div>
+                            <div class="col-3">Neutro</div>
+                        </div>
+                    </div>
                     <div class="col-md-1 text-center">Ação</div>
                 </div>
 
@@ -36,15 +44,35 @@
                 <div id="criteria-forms-container">
                     {% for form in criteria_formset %}
                     <!-- LAYOUT DAS COLUNAS CORRIGIDO -->
-                    <div class="row criterion-form align-items-center mb-3 border-bottom pb-3 gx-3">
-                        <div class="col-md-3">{{ form.name }}</div>
-                        <div class="col-md-1">{{ form.criterion_type }}</div> <div class="col-md-3">
-                            </div>
-                        <div class="col-md-4"> </div>
-                        <div class="col-md-1">
-                            <button type="button" class="btn btn-danger btn-sm delete-criterion-btn w-100">Excluir</button>
+                <div class="row criterion-form align-items-center mb-3 border-bottom pb-3 gx-3">
+                    <div style="display:none;">{{ form.DELETE }}{{ form.string_values }}</div>
+                    <div class="col-md-3">{{ form.name }}</div>
+                    <div class="col-md-1">{{ form.criterion_type }}</div> <!-- Ajustado para col-md-1 -->
+                    <div class="col-md-3">
+                        <div class="input-group">
+                            <button type="button" class="btn btn-outline-danger btn-sm weight-step-btn" data-step="-0.05">-0.05</button>
+                            <button type="button" class="btn btn-outline-danger btn-sm weight-step-btn" data-step="-0.01">-0.01</button>
+                            {% render_field form.weight class="form-control form-control-sm text-center" %}
+                            <button type="button" class="btn btn-outline-success btn-sm weight-step-btn" data-step="0.01">+0.01</button>
+                            <button type="button" class="btn btn-outline-success btn-sm weight-step-btn" data-step="0.05">+0.05</button>
                         </div>
                     </div>
+                    <div class="col-md-4"> <!-- Ajustado para col-md-4 -->
+                        <div class="row gx-2 conditional-numeric">
+                            <div class="col-5">{{ form.proportionality }}</div>
+                            <div class="col-4">{{ form.good_value }}</div>
+                            <div class="col-3">{{ form.neutral_value }}</div>
+                        </div>
+                        <div class="conditional-string" style="display: none;">
+                            <button type="button" class="btn btn-outline-info btn-sm w-100 open-string-modal-btn" data-bs-toggle="modal" data-bs-target="#stringValuesModal">
+                                Definir Valores
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-1">
+                        <button type="button" class="btn btn-danger btn-sm delete-criterion-btn w-100">Excluir</button>
+                    </div>
+                </div>
                     {% endfor %}
                 </div>
                 <button type="button" id="add-criterion-btn" class="btn btn-outline-success mt-2"><i class="bi bi-plus-circle me-2"></i>Adicionar Critério</button>
