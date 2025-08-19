@@ -46,7 +46,7 @@
   </style>
 </head>
 
-<body class="min-vh-100 theme-loading {% if user.is_authenticated %}bg-light{% else %}bg-dark{% endif %}">
+<body class="min-vh-100 theme-loading {% if user.is_authenticated %}bg-light{% else %}bg-dark{% endif %} pb-3">
 
   <!-- Navbar -->
   <nav
@@ -58,6 +58,7 @@
         {% if user.is_authenticated %}
       <span class="navbar-text me-3">Olá, {{ user.username }}!</span>
 
+      <a href="{% url 'upload_form_root' %}" class="btn btn-outline-success me-2">Subir Análise</a>
       <a href="{% url 'analysis_creator' %}" class="btn btn-outline-success me-2">Criar Análise</a>
 
       <a href="{% url 'profile' %}" class="btn btn-outline-primary me-2">Perfil</a>
