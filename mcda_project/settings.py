@@ -99,6 +99,7 @@ SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
 # Opcional, mas recomendado: não rastrear aberturas ou cliques nos e-mails.
 SENDGRID_TRACK_CLICKS_HTML = False
 SENDGRID_TRACK_OPENS = False
+SENDGRID_SANDBOX_MODE_IN_DEBUG = False
 
 # (Opcional) Configuração do SMTP, que o 'sendgrid_backend' usa por baixo dos panos.
 EMAIL_HOST = 'smtp.sendgrid.net'
