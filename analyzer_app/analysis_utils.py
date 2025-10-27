@@ -10,7 +10,7 @@ from typing import Dict, Optional, List, Union, Any
 class DataAnalyzer:
     """Classe principal para análise e comparação de dados de produtos."""
 
-    def __init__(self, file_path: str, delimiter: Optional[str] = None):
+    def __init__(self, file_path: str, delimiter: Optional[str] = None, color_profile: str = 'padrao'):
         """
         Inicializa o analisador.
         Args:
@@ -28,6 +28,25 @@ class DataAnalyzer:
         self.calculation_df = None
         self.string_columns_map = {}
         self.model_column = None
+        
+        self.color_positive = '#0072B2' # Azul (Default)
+        self.color_negative = '#E69F00' # Laranja (Default)
+        self._set_color_palette(color_profile) # Chama a nova função
+        
+    def _set_color_palette(self, color_profile: str) -> None:
+        """Define as cores Positiva e Negativa com base no perfil de acessibilidade."""
+        if color_profile == 'tritanopia':
+            # Paleta Vermelho/Ciano (ideal para Tritanopia)
+            self.color_positive = '#D55E00' # Laranja/Vermelho
+            self.color_negative = '#009E73' # Ciano/Verde
+        elif color_profile == 'monocromia':
+            # Paleta de Alto Contraste (ideal para Monocromia)
+            self.color_positive = '#333333' # Cinza Escuro
+            self.color_negative = '#BDBDBD' # Cinza Claro
+        else:
+            # Padrão (Azul / Laranja) - Ideal para Protanopia/Deuteranopia
+            self.color_positive = '#0072B2' # Azul
+            self.color_negative = '#E69F00' # Laranja
 
     def load_and_prepare_data(self) -> None:
         """Carrega e prepara os dados para análise."""

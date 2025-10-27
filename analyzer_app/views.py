@@ -54,6 +54,8 @@ def upload_and_analyze(request):
         uploaded_file = request.FILES['file']
 
         os.makedirs(settings.UPLOAD_ROOT, exist_ok=True)
+        
+        color_profile = request.POST.get('color_profile', 'padrao') # 'padrao' é o default
 
         username = slugify(request.user.username)
         filename = slugify(os.path.splitext(uploaded_file.name)[0])
@@ -82,7 +84,8 @@ def upload_and_analyze(request):
             })
         )
         # Redireciona para a view que vai de fato analisar e mostrar os dados
-        return redirect(reverse('analysis-view') + f'?analysis_id={analysis.id}')
+        redirect_url = reverse('analysis-view')
+        return redirect(f'{redirect_url}?analysis_id={analysis.id}&color_profile={color_profile}')
 
     # Esta view agora só mostra o formulário de upload
     return render(request, 'analyzer/main.html')
@@ -90,6 +93,9 @@ def upload_and_analyze(request):
 @login_required
 def analyze_data(request):
     analysis_id = request.GET.get('analysis_id')
+    
+    color_profile = request.GET.get('color_profile', 'padrao')
+    
     if not analysis_id:
         return redirect('upload_form_root') # Use o nome correto da sua URL de upload
 
@@ -101,7 +107,7 @@ def analyze_data(request):
         return redirect('upload_form_root') # Use o nome correto da sua URL de upload
 
     try:
-        analyzer = DataAnalyzer(file_path)
+        analyzer = DataAnalyzer(file_path, color_profile=color_profile)
         analyzer.load_and_prepare_data()
         analyzer.calculate_scores()
         

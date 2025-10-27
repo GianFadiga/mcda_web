@@ -27,6 +27,44 @@
                                 </label>
                                 <input type="file" class="form-control form-control-lg" name="file" id="dataFile" accept=".csv" required>
                             </div>
+
+                            <div class="mb-4">
+                                <label class="form-label">
+                                    Perfil de Cores (Acessibilidade):
+                                </label>
+                                <div class="card card-body p-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="color_profile" id="color_padrao" value="padrao" checked>
+                                        <label class="form-check-label" for="color_padrao">
+                                            Padrão (Azul / Laranja)
+                                            <small class="d-block text-muted">Ideal para Protanopia / Deuteranopia (Daltonismo Vermelho-Verde)</small>
+                                        </label>
+                                    </div>
+                                    <hr class="my-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="color_profile" id="color_tritanopia" value="tritanopia">
+                                        <label class="form-check-label" for="color_tritanopia">
+                                            Tritanopia (Vermelho / Ciano)
+                                            <small class="d-block text-muted">Ideal para Daltonismo Azul-Amarelo</small>
+                                        </label>
+                                    </div>
+                                    <hr class="my-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="color_profile" id="color_monocromia" value="monocromia">
+                                        <label class="form-check-label" for="color_monocromia">
+                                            Alto Contraste (Preto / Cinza)
+                                            <small class="d-block text-muted">Ideal para Monocromia</small>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary btn-lg rounded-pill">
+                                    <i class="bi bi-upload me-2"></i> Analisar Dados
+                                </button>
+                            </div>
+                            </form>
+                            
                             <div class="d-grid gap-2">
                                 <button type="submit" class="btn btn-primary btn-lg rounded-pill">
                                     <i class="bi bi-upload me-2"></i> Analisar Dados
