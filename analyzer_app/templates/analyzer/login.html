@@ -37,7 +37,15 @@
       {{ form.password.errors }}
     </div>
 
-    <button type="submit" class="btn btn-primary w-100">Entrar</button>
+    <div class="d-grid gap-2">
+        <button type="submit" class="btn btn-primary">Entrar</button>
+    </div>
+
+  <div class="text-center mt-3">
+      <a href="{% url 'password_reset_request' %}" class="text-decoration-none">
+          Esqueceu sua senha?
+      </a>
+  </div>
   </form>
   <div class="mt-3">
     <div class="mt-3">

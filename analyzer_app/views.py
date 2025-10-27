@@ -44,7 +44,9 @@ from django.template.exceptions import TemplateDoesNotExist
 User = get_user_model()
 from django.utils.text import slugify
 from django.urls import reverse
-
+from django.core.mail import send_mail
+import string
+import random
 
 @login_required
 def upload_and_analyze(request):
@@ -432,3 +434,56 @@ def _generate_complete_csv_string(criteria_data, alternatives_data):
         return output.getvalue(), None
     except Exception as e:
         return None, f"Erro ao gerar o CSV: {e}"
+    
+def password_reset_request(request):
+    if request.method == 'POST':
+        email = request.POST.get('email')
+
+        # 1. Encontra o usuário pelo e-mail (ignorando maiúsculas/minúsculas)
+        user = User.objects.filter(email__iexact=email).first()
+
+        # 2. Se o usuário existir...
+        if user:
+            try:
+                # 3. Gera uma senha temporária (ex: "aB7kPqZ9rX")
+                temp_password = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
+
+                # 4. Define a nova senha (o Django vai fazer o hash automaticamente)
+                user.set_password(temp_password)
+                user.save()
+
+                # 5. Prepara o e-mail
+                subject = '[MCDA] Sua nova senha de acesso'
+                message = (
+                    f"Olá, {user.first_name or user.username},\n\n"
+                    f"Recebemos uma solicitação de redefinição de senha para sua conta.\n\n"
+                    f"Sua nova senha temporária é: {temp_password}\n\n"
+                    f"Por favor, use esta senha para logar. Recomendamos que você "
+                    f"a altere imediatamente na sua página de Perfil.\n\n"
+                    f"Atenciosamente,\n"
+                    f"Equipe do Projeto MCDA"
+                )
+
+                # O e-mail do remetente (que configuramos no settings.py)
+                from_email = settings.DEFAULT_FROM_EMAIL
+
+                # 6. DISPARA O E-MAIL (Usando o SendGrid)
+                send_mail(subject, message, from_email, [user.email])
+
+                messages.success(request, 'Se o e-mail estiver cadastrado, uma nova senha foi enviada.')
+
+            except Exception as e:
+                # Se o e-mail falhar, não quebre o app. Apenas avise no log do Render.
+                print(f"ERRO AO ENVIAR E-MAIL DE RESET: {e}")
+                messages.error(request, 'Houve um erro ao processar sua solicitação. Tente novamente mais tarde.')
+
+        else:
+            # Se o e-mail NÃO existir, mostramos a *mesma* mensagem de sucesso.
+            # Isso é uma prática de segurança para não revelar quais e-mails estão cadastrados.
+            messages.success(request, 'Se o e-mail estiver cadastrado, uma nova senha foi enviada.')
+
+        # 7. Sempre redireciona para o login
+        return redirect('login')
+
+    # Se for um GET (primeira vez na página), apenas mostre o formulário
+    return render(request, 'analyzer/password_reset_form.html')
