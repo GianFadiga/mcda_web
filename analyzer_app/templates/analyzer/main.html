@@ -47,11 +47,9 @@
 
         <p class="text-center text-muted mb-4">Análise gerada em: {{ analysis.creation_date|date:"d/m/Y H:i" }}</p>
 
-        {# Adicionamos a classe 'no-print' para esconder esta div na impressão #}
         <div class="text-center mb-4 no-print"> 
             <a href="{% url 'upload_form_root' %}" class="btn btn-secondary">Analisar outro arquivo</a>
             
-            {# Trocamos o <a> por <button onclick... > #}
             <button onclick="window.print();" class="btn btn-success">
                 <i class="bi bi-printer me-1"></i> Salvar Relatório (PDF)
             </button>

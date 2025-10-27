@@ -85,3 +85,29 @@ AUTHENTICATION_BACKENDS = ['analyzer_app.auth_backend.EmailBackend']
 LOGIN_REDIRECT_URL = '/'
 LOGIN_URL = '/login/'
 LOGOUT_REDIRECT_URL = 'login'
+
+# ===============================================
+# CONFIGURAÇÃO DE ENVIO DE E-MAIL (SENDGRID)
+# ===============================================
+
+# O "Backend" que o Django vai usar. Informa que é o SendGrid.
+EMAIL_BACKEND = 'sendgrid_backend.SendgridBackend'
+
+# A sua API Key, lida de forma segura do ambiente do Render (Etapa 2).
+SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
+
+# Opcional, mas recomendado: não rastrear aberturas ou cliques nos e-mails.
+SENDGRID_TRACK_CLICKS_HTML = False
+SENDGRID_TRACK_OPENS = False
+
+# (Opcional) Configuração do SMTP, que o 'sendgrid_backend' usa por baixo dos panos.
+EMAIL_HOST = 'smtp.sendgrid.net'
+EMAIL_HOST_USER = 'apikey' # (Isso é literal, deixe 'apikey')
+EMAIL_HOST_PASSWORD = SENDGRID_API_KEY
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+
+# --- O REMETENTE PADRÃO ---
+# Coloque aqui o e-mail exato que você verificou no SendGrid (Etapa 3 anterior).
+# Este é o e-mail que aparecerá no campo "De:"
+DEFAULT_FROM_EMAIL = 'gianlucca.rissato@fatec.sp.gov.br'

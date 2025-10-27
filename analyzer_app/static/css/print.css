@@ -1,6 +1,11 @@
 /* O @media print faz com que essas regras SÓ se apliquem na hora de imprimir */
 @media print {
 
+    @page {
+        size: landscape; /* Define a orientação da página como paisagem */
+        margin: 1cm;    /* Define margens de 1 cm */
+    }
+
     /* Esconde tudo que tiver a classe 'no-print' */
     .no-print {
         display: none !important;
