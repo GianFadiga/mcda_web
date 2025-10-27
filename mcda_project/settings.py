@@ -1,11 +1,8 @@
 # mcda_project/settings.py
 from pathlib import Path
 import os
-import pymysql
 from decouple import config
 import dj_database_url
-
-pymysql.install_as_MySQLdb()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
