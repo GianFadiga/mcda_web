@@ -253,7 +253,7 @@ class DataAnalyzer:
         analysis_df['Color_Category'] = analysis_df['Total_Score'].apply(lambda x: 'Positiva' if x >= 0 else 'Negativa')
         fig = px.bar(
             analysis_df, x='Total_Score', y=self.model_column, orientation='h',
-            color='Color_Category', color_discrete_map={'Positiva': 'lightgreen', 'Negativa': 'palevioletred'},
+            color='Color_Category', color_discrete_map={'Positiva': self.color_positive, 'Negativa': self.color_negative},
             hover_name=self.model_column, hover_data={'Total_Score': ':.2f'}, title='Pontuação Total dos Modelos'
         )
         fig.update_layout(yaxis={'categoryorder': 'total ascending'}, plot_bgcolor='white', paper_bgcolor='white', legend_title_text='Resultado', xaxis_title='Pontuação Total', yaxis_title='Modelo')
@@ -282,7 +282,7 @@ class DataAnalyzer:
             is_inverse = self.proportionality.get(col, '').lower() == 'i_proportional'
             df['Color_Category'] = df.apply(lambda x: self._classify_numeric_value(x[col], good_value, neutral_value, is_inverse), axis=1)
             df = df.sort_values(col, ascending=not is_inverse)
-            fig = px.bar(df, x=col, y=self.model_column, orientation='h', color='Color_Category', color_discrete_map={'Positiva': 'lightgreen', 'Negativa': 'palevioletred', 'Neutra': 'lightgray'}, hover_name=self.model_column, hover_data={col: ':.2f'}, title=f"{col} {'(Inversamente Proporcional)' if is_inverse else ''}")
+            fig = px.bar(df, x=col, y=self.model_column, orientation='h', color='Color_Category', color_discrete_map={'Positiva': self.color_positive, 'Negativa': self.color_negative, 'Neutra': 'lightgray'}, hover_name=self.model_column, hover_data={col: ':.2f'}, title=f"{col} {'(Inversamente Proporcional)' if is_inverse else ''}")
             fig.update_layout(plot_bgcolor='white', paper_bgcolor='white', legend_title_text='Resultado', xaxis_title=col, yaxis_title='Modelo')
             if pd.notna(neutral_value): self._add_reference_line(fig, float(neutral_value), len(df), "Mínimo Aceitável<br>(NEUTRO)")
             if pd.notna(good_value): self._add_reference_line(fig, float(good_value), len(df), "Desejável (BOM)")
@@ -349,7 +349,7 @@ class DataAnalyzer:
             df['Value'] = df[col].map({True: 1, False: 0})
             df['Size'] = 20
             fig = px.scatter(
-                df, x=self.model_column, y='Value', color=col, color_discrete_map={True: '#4CAF50', False: '#F44336'},
+                df, x=self.model_column, y='Value', color=col, color_discrete_map={True: self.color_positive, False: self.color_negative},
                 size='Size', title=f'{col} por Modelo', hover_name=self.model_column,
                 hover_data={'Value': False, 'Size': False}, category_orders={col: [True, False]}
             )
