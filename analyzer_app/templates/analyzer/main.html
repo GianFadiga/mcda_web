@@ -48,6 +48,11 @@
 
         <div class="text-center mb-4">
             <a href="{% url 'upload_form_root' %}" class="btn btn-secondary">Analisar outro arquivo</a>
+            
+            {# NOVO BOTÃO DE PDF ADICIONADO AQUI #}
+            <a href="{% url 'gerar_pdf' analysis.id %}" class="btn btn-success">
+                <i class="bi bi-file-earmark-pdf me-1"></i> Baixar Relatório PDF
+            </a>
         </div>
         
         {% if podium_data %}
