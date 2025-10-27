@@ -1,0 +1,133 @@
+{% extends 'analyzer/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-lg-10 offset-lg-1">
+
+            <h2 class="text-center mb-4">Tutorial da Ferramenta MCDA</h2>
+            <p class="lead text-center mb-5">
+                Aprenda a preparar seus arquivos e a interpretar os resultados da análise.
+            </p>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Vídeo 1: Preparando seu Arquivo CSV</h5>
+                </div>
+                <div class="card-body">
+                    <p>Este vídeo explica o formato exato que seu arquivo CSV precisa ter...</p>
+                    <div class="ratio ratio-16x9">
+                        <iframe 
+                            src="LINK_DO_SEU_VIDEO_1_EMBED" 
+                            title="Tutorial 1: Preparando CSV" 
+                            frameborder="0" 
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                            allowfullscreen>
+                        </iframe>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Vídeo 2: Interpretando os Gráficos</h5>
+                </div>
+                <div class="card-body">
+                    <p>Entenda o que cada gráfico significa e como o pódio é calculado...</p>
+                    <div class="ratio ratio-16x9">
+                        <iframe 
+                            src="LINK_DO_SEU_VIDEO_2_EMBED" 
+                            title="Tutorial 2: Interpretando Gráficos" 
+                            frameborder="0" 
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                            allowfullscreen>
+                        </iframe>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-5">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Arquivo Base para Download</h5>
+                    <p class="card-text">
+                        Use este arquivo como modelo para criar suas próprias análises.
+                    </p>
+                    <a href="{% static 'files/'|add:download_file_name %}" class="btn btn-primary" download>
+                        <i class="bi bi-download me-2"></i> 
+                        Baixar Modelo ({{ download_file_name }})
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Como Formatar seu Arquivo CSV Corretamente</h5>
+    </div>
+    <div class="card-body">
+        <p>Para que o algoritmo funcione corretamente, seu arquivo <strong>.csv</strong> deve seguir um formato padrão. Arquivos salvos diretamente do Microsoft Excel podem não funcionar se não forem salvos da maneira correta.</p>
+        
+        <hr>
+
+        <div class="row">
+            <div class="col-md-6">
+                <h4>Regras de Ouro</h4>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        <strong>Use Vírgula (,) como Separador</strong>
+                        <p class="small text-muted mb-0">
+                            Nunca use ponto-e-vírgula (;). Este é o erro mais comum.
+                        </p>
+                    </li>
+                    <li class="list-group-item">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        <strong>Use Codificação UTF-8</strong>
+                        <p class="small text-muted mb-0">
+                            Evite "UTF-8-BOM" ou codificações antigas como "latin-1" ou "ANSI".
+                        </p>
+                    </li>
+                    <li class="list-group-item">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        <strong>Use as 6 Linhas de Cabeçalho</strong>
+                        <p class="small text-muted mb-0">
+                            O arquivo <strong>deve</strong> conter as 6 linhas de configuração (PESO, TIPO, FUNCAO, BOM, NEUTRO) antes dos dados, exatamente como no arquivo modelo.
+                        </p>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="col-md-6">
+                <h4>Dicas por Software</h4>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item">
+                        <i class="bi bi-controller text-primary me-2"></i>
+                        <strong>Google Planilhas (Recomendado)</strong>
+                        <p class="small text-muted mb-0">
+                            A forma mais fácil. Vá em <strong>Arquivo > Fazer download > Valores separados por vírgula (.csv)</strong>. O arquivo já virá no formato perfeito.
+                        </p>
+                    </li>
+                    <li class="list-group-item">
+                        <i class="bi bi-file-earmark-spreadsheet text-info me-2"></i>
+                        <strong>LibreOffice Calc</strong>
+                        <p class="small text-muted mb-0">
+                            Vá em <strong>Salvar como...</strong>, escolha "Texto CSV". Na janela de opções, confirme se o "Separador de campo" é a <strong>vírgula (,)</strong> e a "Codificação" é <strong>UTF-8</strong>.
+                        </p>
+                    </li>
+                    <li class="list-group-item">
+                        <i class="bi bi-file-earmark-excel text-danger me-2"></i>
+                        <strong>Microsoft Excel (Cuidado!)</strong>
+                        <p class="small text-muted mb-0">
+                            Ao "Salvar como...", escolha o tipo <strong>"CSV (Separado por vírgulas)"</strong>, e não apenas "CSV (MS-DOS)" ou "CSV (Separado por ponto e vírgula)".
+                        </p>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

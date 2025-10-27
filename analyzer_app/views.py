@@ -487,3 +487,14 @@ def password_reset_request(request):
 
     # Se for um GET (primeira vez na página), apenas mostre o formulário
     return render(request, 'analyzer/password_reset_form.html')
+
+@login_required
+def tutorial_view(request):
+    """
+    Renderiza a página estática de tutorial.
+    """
+    # (Opcional) Você pode preparar o link do arquivo aqui
+    context = {
+        'download_file_name': 'arquivo_base.csv' # O nome do seu arquivo
+    }
+    return render(request, 'analyzer/tutorial.html', context)
