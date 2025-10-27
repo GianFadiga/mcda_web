@@ -1,0 +1,49 @@
+/* O @media print faz com que essas regras SÓ se apliquem na hora de imprimir */
+@media print {
+
+    /* Esconde tudo que tiver a classe 'no-print' */
+    .no-print {
+        display: none !important;
+    }
+
+    /* Esconde a barra de navegação (navbar) do seu base.html */
+    /* (Assumindo que ela usa a tag <nav> ou classe .navbar) */
+    nav, .navbar {
+        display: none !important;
+    }
+
+    /* Esconde o rodapé (se houver) */
+    footer, .footer {
+        display: none !important;
+    }
+
+    /* Esconde a seção de upload (ela não deve aparecer no relatório) */
+    #upload-section {
+        display: none !important;
+    }
+
+    /* Faz a seção de resultados ocupar 100% da página */
+    #results-section {
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        box-shadow: none !important;
+    }
+
+    /* Remove sombras e bordas desnecessárias dos gráficos */
+    .card {
+        box-shadow: none !important;
+        border: 1px solid #dee2e6; /* Adiciona uma borda fina para delinear */
+        page-break-inside: avoid;  /* Tenta não quebrar o gráfico no meio da página */
+    }
+
+    /* Garante que os gráficos do Plotly sejam visíveis */
+    .plotly-graph-div {
+        visibility: visible !important;
+    }
+
+    /* Tenta não quebrar o pódio no meio */
+    .podium-container {
+        page-break-inside: avoid;
+    }
+}

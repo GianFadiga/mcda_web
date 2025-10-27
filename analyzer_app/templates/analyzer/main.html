@@ -2,8 +2,9 @@
 {% load static %}
 
 {% block extra_head %}
-{# Caminho correto para o CSS do pódio que criamos #}
-<link rel="stylesheet" href="{% static 'analyzer/css/podium.css' %}">
+    {# Caminho correto para o CSS do pódio que criamos #}
+    <link rel="stylesheet" href="{% static 'analyzer/css/podium.css' %}">
+    <link rel="stylesheet" href="{% static 'analyzer/css/print.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -46,13 +47,14 @@
 
         <p class="text-center text-muted mb-4">Análise gerada em: {{ analysis.creation_date|date:"d/m/Y H:i" }}</p>
 
-        <div class="text-center mb-4">
+        {# Adicionamos a classe 'no-print' para esconder esta div na impressão #}
+        <div class="text-center mb-4 no-print"> 
             <a href="{% url 'upload_form_root' %}" class="btn btn-secondary">Analisar outro arquivo</a>
             
-            {# NOVO BOTÃO DE PDF ADICIONADO AQUI #}
-            <a href="{% url 'gerar_pdf' analysis.id %}" class="btn btn-success">
-                <i class="bi bi-file-earmark-pdf me-1"></i> Baixar Relatório PDF
-            </a>
+            {# Trocamos o <a> por <button onclick... > #}
+            <button onclick="window.print();" class="btn btn-success">
+                <i class="bi bi-printer me-1"></i> Salvar Relatório (PDF)
+            </button>
         </div>
         
         {% if podium_data %}

@@ -13,5 +13,4 @@ urlpatterns = [
     path('user_logs/', user_logs_view, name='user_logs'),
     path('analysis_logs/', analysis_logs_view, name='analysis_logs'),
     path('creator/', views.analysis_creator_view, name='analysis_creator'),
-    path('analysis/<int:analysis_id>/pdf/', views.gerar_pdf_view, name='gerar_pdf'),
 ]

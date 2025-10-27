@@ -432,21 +432,3 @@ def _generate_complete_csv_string(criteria_data, alternatives_data):
         return output.getvalue(), None
     except Exception as e:
         return None, f"Erro ao gerar o CSV: {e}"
-    
-@login_required
-def gerar_pdf_view(request, analysis_id):
-    """
-    View para gerar o relatório PDF da análise.
-    (ETAPA 1: Por enquanto, é apenas um placeholder para corrigir a URL)
-    """
-    
-    # 1. Buscamos a análise para garantir que o ID é válido e pertence ao usuário
-    analysis = get_object_or_404(Analysis, id=analysis_id, user=request.user)
-    
-    # 2. (PRÓXIMO PASSO: Adicionar lógica do ReportLab aqui)
-    
-    # 3. Por enquanto, apenas retornamos uma resposta simples para o teste
-    return HttpResponse(f"<h1>Preparando PDF...</h1>"
-        f"<p>Análise ID: {analysis.id}</p>"
-        f"<p>Nome: {analysis.name}</p>"
-        f"<p>Usuário: {request.user.username}</p>")
