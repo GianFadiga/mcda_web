@@ -270,10 +270,15 @@ def analysis_creator_view(request):
 
     if request.method == 'POST':
         formset = CriterionFormSet(request.POST, prefix='criteria')
+        
+        color_profile = request.POST.get('color_profile', 'padrao') # 'padrao' é o default
 
         if not formset.is_valid():
             messages.error(request, "Houve um erro nos critérios definidos. Por favor, verifique os campos.")
-            return render(request, 'analyzer/analysis_creator.html', {'criteria_formset': formset})
+            return render(request, 'analyzer/analysis_creator.html', {
+                'criteria_formset': formset,
+                'selected_color_profile': color_profile # Passa o valor de volta
+            })
 
         valid_criteria = [form for form in formset.cleaned_data if form and not form.get('DELETE', False)]
         total_weight = sum(crit.get('weight', 0) for crit in valid_criteria)
@@ -283,8 +288,8 @@ def analysis_creator_view(request):
             return render(request, 'analyzer/analysis_creator.html', {'criteria_formset': CriterionFormSet(request.POST, prefix='criteria')})
 
         if not valid_criteria:
-             messages.error(request, "Defina pelo menos um critério para a análise.")
-             return render(request, 'analyzer/analysis_creator.html', {'criteria_formset': formset})
+            messages.error(request, "Defina pelo menos um critério para a análise.")
+            return render(request, 'analyzer/analysis_creator.html', {'criteria_formset': formset})
 
         alternatives_data = _parse_alternatives_from_post(request.POST)
         analysis_name = request.POST.get('analysis_name', 'analise-sem-nome')
@@ -292,7 +297,10 @@ def analysis_creator_view(request):
         
         if error_message:
             messages.error(request, error_message)
-            return render(request, 'analyzer/analysis_creator.html', {'criteria_formset': formset})
+            return render(request, 'analyzer/analysis_creator.html', {
+                'criteria_formset': formset,
+                'selected_color_profile': color_profile # Passa o valor de volta
+            })
 
         action = request.POST.get('action')
         if action == 'download':
@@ -331,7 +339,8 @@ def analysis_creator_view(request):
                 )
 
                 # 4. Redireciona para a view de análise, como no fluxo original
-                return redirect(reverse('analysis-view') + f'?analysis_id={analysis.id}')
+                redirect_url = reverse('analysis-view')
+                return redirect(f'{redirect_url}?analysis_id={analysis.id}&color_profile={color_profile}')
 
             except Exception as e:
                 messages.error(request, f"Ocorreu um erro ao salvar ou processar a análise: {e}")
@@ -339,7 +348,10 @@ def analysis_creator_view(request):
             
     # Se GET, ou se o formset for inválido e não tratado acima, renderiza a página de criação
     formset = CriterionFormSet(prefix='criteria')
-    return render(request, 'analyzer/analysis_creator.html', {'criteria_formset': formset})
+    return render(request, 'analyzer/analysis_creator.html', {
+        'criteria_formset': formset,
+        'selected_color_profile': 'padrao' # Valor padrão ao carregar
+    })
 
 
 def _parse_alternatives_from_post(post_data):
