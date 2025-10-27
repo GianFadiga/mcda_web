@@ -15,4 +15,5 @@ urlpatterns = [
     path('creator/', views.analysis_creator_view, name='analysis_creator'),
     path('password_reset/', views.password_reset_request, name='password_reset_request'),
     path('tutorial/', views.tutorial_view, name='tutorial'),
+    path('analysis/<int:analysis_id>/download_csv/', views.download_analysis_csv, name='download_csv'),
 ]

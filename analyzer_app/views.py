@@ -21,7 +21,7 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordChangeForm
 from django.core.paginator import Paginator
-from django.http import HttpResponse
+from django.http import HttpResponse, Http404
 from django.shortcuts import (
     get_object_or_404,
     redirect,
@@ -516,3 +516,37 @@ def tutorial_view(request):
         'download_file_name': 'arquivo_base.csv' # O nome do seu arquivo
     }
     return render(request, 'analyzer/tutorial.html', context)
+
+@login_required
+def download_analysis_csv(request, analysis_id):
+    """
+    Serve um arquivo CSV para download, mas apenas se o usuário logado for o dono.
+    """
+    try:
+        # 1. Busca a análise E verifica se o 'user' dela é o 'request.user'
+        # Isso é o coração da nossa segurança.
+        analysis = get_object_or_404(Analysis, id=analysis_id, user=request.user)
+    
+    except Http404:
+        # Se não encontrar (ou não for o dono), retorna um erro
+        messages.error(request, "Análise não encontrada ou você não tem permissão para acessá-la.")
+        return redirect('user_analyses') # Redireciona de volta para a lista
+
+    # 2. Se o usuário for o dono, encontramos o caminho do arquivo
+    file_path = os.path.join(settings.UPLOAD_ROOT, analysis.name)
+
+    # 3. Verificamos se o arquivo realmente existe no disco
+    if os.path.exists(file_path):
+        # 4. Abrimos o arquivo em modo binário ('rb') e o servimos
+        with open(file_path, 'rb') as fh:
+            # Criamos uma resposta HTTP com o conteúdo do arquivo
+            response = HttpResponse(fh.read(), content_type="text/csv")
+            
+            # Este cabeçalho força o navegador a "Baixar" em vez de "Mostrar"
+            response['Content-Disposition'] = f'attachment; filename="{analysis.name}"'
+            
+            return response
+    else:
+        # Se o arquivo não existir no disco (ex: foi apagado manualmente)
+        messages.error(request, f"O arquivo '{analysis.name}' não foi encontrado no servidor.")
+        return redirect('user_analyses')

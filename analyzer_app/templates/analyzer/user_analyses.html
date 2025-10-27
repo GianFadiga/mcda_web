@@ -1,23 +1,40 @@
 <!-- analyzer_app/templates/analyzer/user_analyses.html -->
 {% extends 'analyzer/base.html' %}
 
-{% block title %}Minhas Análises{% endblock %}
-
 {% block content %}
-<div class="container w-50 text-center fw-bold">
-    <h2 class="mb-4">Minhas Análises</h2>
+<div class="container mt-5">
+    <h2 class="text-center mb-4">Minhas Análises Salvas</h2>
 
-    <ul class="list-group text-start">
-        {% for analysis in analyses %}
-        <li class="list-group-item d-flex justify-content-between align-items-center">
-            <div>
-                <strong>{{ analysis.name }}</strong><br>
-                <small class="text-muted">{{ analysis.description }}</small>
+    <div class="row">
+        <div class="col-md-10 offset-md-1">
+            <div class="card shadow-sm">
+                <div class="list-group list-group-flush">
+                    
+                    {% for analysis in analyses %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="mb-1">{{ analysis.name }}</h5>
+                                <small class="text-muted">Criada em: {{ analysis.creation_date|date:"d/m/Y H:i" }}</small>
+                            </div>
+                            <div>
+                                <a href="{% url 'analysis-view' %}?analysis_id={{ analysis.id }}" class="btn btn-sm btn-outline-info" title="Visualizar Análise">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                
+                                <a href="{% url 'download_csv' analysis.id %}" class="btn btn-sm btn-outline-primary" title="Baixar CSV Original">
+                                    <i class="bi bi-download"></i> Baixar CSV
+                                </a>
+                            </div>
+                        </li>
+                        {% empty %}
+                        <li class="list-group-item text-center text-muted">
+                            Você ainda não salvou nenhuma análise.
+                        </li>
+                    {% endfor %}
+                    
+                </div>
             </div>
-        </li>
-        {% empty %}
-        <li class="list-group-item text-center text-muted">Nenhuma análise encontrada.</li>
-        {% endfor %}
-    </ul>
+        </div>
+    </div>
 </div>
 {% endblock %}
