@@ -16,6 +16,7 @@ class DataAnalyzer:
         Args:
             file_path: Caminho para o arquivo CSV.
             delimiter: (Opcional) O separador a ser usado. Se None, será detectado.
+            color_profile: O perfil de cor ('padrao', 'tritanopia', 'monocromia')
         """
         self.file_path = file_path
         self.delimiter = delimiter
@@ -29,10 +30,11 @@ class DataAnalyzer:
         self.string_columns_map = {}
         self.model_column = None
         
+        # Configuração de Cores de Acessibilidade
         self.color_positive = '#0072B2' # Azul (Default)
         self.color_negative = '#E69F00' # Laranja (Default)
-        self._set_color_palette(color_profile) # Chama a nova função
-        
+        self._set_color_palette(color_profile)
+
     def _set_color_palette(self, color_profile: str) -> None:
         """Define as cores Positiva e Negativa com base no perfil de acessibilidade."""
         if color_profile == 'tritanopia':
@@ -59,20 +61,23 @@ class DataAnalyzer:
         self._convert_data_types()
 
     def _load_raw_data(self) -> None:
-        """Carrega os dados brutos do CSV, com detecção robusta de separador e cabeçalho."""
+        """Carrega os dados brutos do CSV com fallback inteligente para separadores."""
         try:
             separator = self.delimiter
-            if separator:
-                print(f"Usando separador explícito: '{separator}'")
-            else:
+            
+            # 1. Tentativa de detecção automática
+            if not separator:
                 with open(self.file_path, 'r', encoding='UTF-8', newline='') as f:
                     try:
-                        dialect = csv.Sniffer().sniff(f.read(2048))
+                        # Lê um pedaço maior para melhorar a precisão do Sniffer
+                        sample = f.read(4096)
+                        dialect = csv.Sniffer().sniff(sample)
                         separator = dialect.delimiter
                     except (csv.Error, UnicodeDecodeError):
-                        separator = ',' # Fallback final
-                print(f"Separador detectado: '{separator}'")
+                        separator = ',' # Fallback padrão
+                print(f"Separador detectado inicialmente: '{separator}'")
             
+            # Verifica se a primeira linha é cabeçalho de dados ou configuração
             with open(self.file_path, 'r', encoding='UTF-8', errors='ignore') as f:
                 first_line = f.readline().strip()
             
@@ -80,8 +85,31 @@ class DataAnalyzer:
             is_data_row = any(first_line.upper().startswith(kw) for kw in config_keywords)
             
             header_option = None if is_data_row else 0
-            self.df = pd.read_csv(self.file_path, sep=separator, skipinitialspace=True, header=header_option, encoding='utf-8', on_bad_lines='error')
             
+            # 2. Leitura inicial com o separador detectado
+            self.df = pd.read_csv(
+                self.file_path, 
+                sep=separator, 
+                skipinitialspace=True, 
+                header=header_option, 
+                encoding='utf-8', 
+                on_bad_lines='error'
+            )
+            
+            # 3. VALIDAÇÃO DE SEGURANÇA (A CORREÇÃO CRÍTICA)
+            # Se o DataFrame tiver apenas 1 coluna e o separador não for vírgula,
+            # o Sniffer provavelmente errou. Forçamos a vírgula.
+            if self.df.shape[1] < 2 and separator != ',':
+                print(f"Aviso: Leitura resultou em apenas 1 coluna com separador '{separator}'. Tentando fallback para vírgula.")
+                self.df = pd.read_csv(
+                    self.file_path, 
+                    sep=',', 
+                    skipinitialspace=True, 
+                    header=header_option, 
+                    encoding='utf-8', 
+                    on_bad_lines='error'
+                )
+
             if is_data_row:
                 self.df.columns = [f'Coluna_{i+1}' for i in range(len(self.df.columns))]
             
@@ -89,6 +117,7 @@ class DataAnalyzer:
                  self.model_column = self.df.columns[0]
             else:
                 raise ValueError("Arquivo CSV está vazio.")
+                
         except Exception as e:
             raise ValueError(f"Erro ao carregar ou processar arquivo: {e}")
 
@@ -100,9 +129,13 @@ class DataAnalyzer:
         first_col = self.df.columns[0]
         self.df[first_col] = self.df[first_col].astype(str)
 
-        self.weights = self.df[self.df[first_col].str.upper() == 'PESO'].iloc[0].drop(first_col).dropna().astype(float)
-        self.data_types = self.df[self.df[first_col].str.upper() == 'TIPO'].iloc[0].drop(first_col).dropna()
-        self.proportionality = self.df[self.df[first_col].str.upper() == 'FUNCAO'].iloc[0].drop(first_col).dropna()
+        # Aqui é onde o erro ocorria se a leitura estivesse errada
+        try:
+            self.weights = self.df[self.df[first_col].str.upper() == 'PESO'].iloc[0].drop(first_col).dropna().astype(float)
+            self.data_types = self.df[self.df[first_col].str.upper() == 'TIPO'].iloc[0].drop(first_col).dropna()
+            self.proportionality = self.df[self.df[first_col].str.upper() == 'FUNCAO'].iloc[0].drop(first_col).dropna()
+        except IndexError:
+            raise ValueError("Não foi possível encontrar as linhas de configuração (PESO, TIPO, FUNCAO). Verifique o formato do CSV.")
 
     def _map_string_columns(self) -> None:
         self.string_columns_map = {}
@@ -226,7 +259,7 @@ class DataAnalyzer:
         return base_score * weight
 
     # ===============================================================
-    # SUAS FUNÇÕES ORIGINAIS DE GERAÇÃO DE GRÁFICOS
+    # GERAÇÃO DE GRÁFICOS
     # ===============================================================
     def generate_visualizations(self) -> Dict[str, str]:
         visualizations = {}
@@ -282,7 +315,10 @@ class DataAnalyzer:
             is_inverse = self.proportionality.get(col, '').lower() == 'i_proportional'
             df['Color_Category'] = df.apply(lambda x: self._classify_numeric_value(x[col], good_value, neutral_value, is_inverse), axis=1)
             df = df.sort_values(col, ascending=not is_inverse)
-            fig = px.bar(df, x=col, y=self.model_column, orientation='h', color='Color_Category', color_discrete_map={'Positiva': self.color_positive, 'Negativa': self.color_negative, 'Neutra': 'lightgray'}, hover_name=self.model_column, hover_data={col: ':.2f'}, title=f"{col} {'(Inversamente Proporcional)' if is_inverse else ''}")
+            fig = px.bar(df, x=col, y=self.model_column, orientation='h', 
+                         color='Color_Category', 
+                         color_discrete_map={'Positiva': self.color_positive, 'Negativa': self.color_negative, 'Neutra': 'lightgray'}, 
+                         hover_name=self.model_column, hover_data={col: ':.2f'}, title=f"{col} {'(Inversamente Proporcional)' if is_inverse else ''}")
             fig.update_layout(plot_bgcolor='white', paper_bgcolor='white', legend_title_text='Resultado', xaxis_title=col, yaxis_title='Modelo')
             if pd.notna(neutral_value): self._add_reference_line(fig, float(neutral_value), len(df), "Mínimo Aceitável<br>(NEUTRO)")
             if pd.notna(good_value): self._add_reference_line(fig, float(good_value), len(df), "Desejável (BOM)")
@@ -349,7 +385,8 @@ class DataAnalyzer:
             df['Value'] = df[col].map({True: 1, False: 0})
             df['Size'] = 20
             fig = px.scatter(
-                df, x=self.model_column, y='Value', color=col, color_discrete_map={True: self.color_positive, False: self.color_negative},
+                df, x=self.model_column, y='Value', color=col, 
+                color_discrete_map={True: self.color_positive, False: self.color_negative},
                 size='Size', title=f'{col} por Modelo', hover_name=self.model_column,
                 hover_data={'Value': False, 'Size': False}, category_orders={col: [True, False]}
             )
@@ -362,7 +399,7 @@ class DataAnalyzer:
         return charts
 
     # ===============================================================
-    # NOVAS FUNÇÕES DO PÓDIO
+    # FUNÇÕES DO PÓDIO
     # ===============================================================
     def get_podium_details(self) -> list:
         if 'Total_Score' not in self.calculation_df.columns: return []
