@@ -112,3 +112,4 @@ EMAIL_USE_TLS = True
 # Coloque aqui o e-mail exato que você verificou no SendGrid (Etapa 3 anterior).
 # Este é o e-mail que aparecerá no campo "De:"
 DEFAULT_FROM_EMAIL = 'gianlucca.rissato@fatec.sp.gov.br'
+SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
