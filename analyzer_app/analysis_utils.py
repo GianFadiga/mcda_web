@@ -75,7 +75,6 @@ class DataAnalyzer:
                         separator = dialect.delimiter
                     except (csv.Error, UnicodeDecodeError):
                         separator = ',' # Fallback padrão
-                print(f"Separador detectado inicialmente: '{separator}'")
             
             # Verifica se a primeira linha é cabeçalho de dados ou configuração
             with open(self.file_path, 'r', encoding='UTF-8', errors='ignore') as f:
@@ -96,9 +95,7 @@ class DataAnalyzer:
                 on_bad_lines='error'
             )
             
-            # 3. VALIDAÇÃO DE SEGURANÇA (A CORREÇÃO CRÍTICA)
-            # Se o DataFrame tiver apenas 1 coluna e o separador não for vírgula,
-            # o Sniffer provavelmente errou. Forçamos a vírgula.
+            # 3. VALIDAÇÃO DE SEGURANÇA (A CORREÇÃO CRÍTICA DE ANTES)
             if self.df.shape[1] < 2 and separator != ',':
                 print(f"Aviso: Leitura resultou em apenas 1 coluna com separador '{separator}'. Tentando fallback para vírgula.")
                 self.df = pd.read_csv(
@@ -129,7 +126,6 @@ class DataAnalyzer:
         first_col = self.df.columns[0]
         self.df[first_col] = self.df[first_col].astype(str)
 
-        # Aqui é onde o erro ocorria se a leitura estivesse errada
         try:
             self.weights = self.df[self.df[first_col].str.upper() == 'PESO'].iloc[0].drop(first_col).dropna().astype(float)
             self.data_types = self.df[self.df[first_col].str.upper() == 'TIPO'].iloc[0].drop(first_col).dropna()
@@ -147,7 +143,6 @@ class DataAnalyzer:
                 col_idx = list(self.df.columns).index(col)
                 if col_idx + 1 < len(self.df.columns):
                     pts_col_name_original = self.df.columns[col_idx + 1]
-                    # Verifica se a próxima coluna é de fato uma coluna de pontos
                     if self.data_types.get(pts_col_name_original) == 'pts_string' or self.proportionality.get(pts_col_name_original) == 'pts_string':
                         new_pts_col_name = f"{col}_points"
                         self.string_columns_map[col] = new_pts_col_name
@@ -163,7 +158,6 @@ class DataAnalyzer:
         self.neutral_values = neutral_row.iloc[0].dropna() if not neutral_row.empty else pd.Series(dtype='object')
 
     def _prepare_calculation_data(self) -> None:
-        """Versão corrigida que filtra por identificadores, não por posição."""
         config_identifiers = ['PESO', 'TIPO', 'FUNCAO', 'BOM', 'NEUTRO']
         self.calculation_df = self.df[~self.df[self.model_column].str.upper().isin(config_identifiers)].reset_index(drop=True).copy()
 
@@ -200,7 +194,14 @@ class DataAnalyzer:
         good = self.good_values.get(col); neutral = self.neutral_values.get(col)
         weight = self.weights.get(col, 0); prop = self.proportionality.get(col)
         if pd.isna(good) or pd.isna(neutral) or not prop: self.calculation_df[score_col_name] = 0; return
-        self.calculation_df[score_col_name] = self.calculation_df.apply(lambda row: self._calculate_numeric_score_value(row.get(col), good, neutral, weight, prop), axis=1)
+        
+        # Normaliza a string de proporcionalidade para minúsculo e remove espaços
+        prop_clean = str(prop).strip().lower()
+        
+        self.calculation_df[score_col_name] = self.calculation_df.apply(
+            lambda row: self._calculate_numeric_score_value(row.get(col), good, neutral, weight, prop_clean), 
+            axis=1
+        )
 
     def _calculate_string_score(self, col: str, score_col_name: str) -> None:
         self.calculation_df[score_col_name] = self.calculation_df.apply(lambda row: self._calculate_string_score_value(row.get(col), col), axis=1)
@@ -212,8 +213,15 @@ class DataAnalyzer:
     def _calculate_numeric_score_value(self, value, good, neutral, weight, prop) -> float:
         if pd.isna(value): return 0
         if isinstance(value, (bool, np.bool_)): return self._calculate_boolean_score(value, good, neutral, weight)
-        if prop == 'proportional': return self._calculate_proportional_score(value, good, neutral, weight)
-        if prop == 'i_proportional': return self._calculate_inverse_proportional_score(value, good, neutral, weight)
+        
+        # CORREÇÃO 1: Aceita 'proportional' OU 'direct'
+        if prop in ['proportional', 'direct']: 
+            return self._calculate_proportional_score(value, good, neutral, weight)
+            
+        # CORREÇÃO 2: Aceita 'i_proportional' OU 'inverse'
+        if prop in ['i_proportional', 'inverse']: 
+            return self._calculate_inverse_proportional_score(value, good, neutral, weight)
+            
         return 0
 
     def _calculate_boolean_score(self, value, good, neutral, weight) -> float:
@@ -312,7 +320,11 @@ class DataAnalyzer:
             if df.empty: continue
             good_value = self.good_values.get(col)
             neutral_value = self.neutral_values.get(col)
-            is_inverse = self.proportionality.get(col, '').lower() == 'i_proportional'
+            
+            # CORREÇÃO 3: Detecta se é inverso aceitando ambos os termos (PARA COR DO GRÁFICO)
+            prop_val = str(self.proportionality.get(col, '')).strip().lower()
+            is_inverse = prop_val in ['i_proportional', 'inverse']
+            
             df['Color_Category'] = df.apply(lambda x: self._classify_numeric_value(x[col], good_value, neutral_value, is_inverse), axis=1)
             df = df.sort_values(col, ascending=not is_inverse)
             fig = px.bar(df, x=col, y=self.model_column, orientation='h', 
